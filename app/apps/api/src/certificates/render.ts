@@ -200,11 +200,11 @@ export async function renderCertificate(input: {
   // ---- logos: the full Parakh logo and the full NandiVex Technologies logo always show. With a
   // trainer logo: trainer left, Parakh centre, NandiVex right. Without one (or for a NandiVex-run
   // exam) Parakh and NandiVex sit side by side, centred, with a thin divider.
-  const logoY = H - 112;
-  const logoH = 62;
+  const logoY = H - 118;
+  const logoH = 72;
   if (!trainer) {
-    const parakhW = 150;
-    const nandivexW = 186;
+    const parakhW = 176;
+    const nandivexW = 180;
     const gap = 40;
     const x0 = cx - (parakhW + gap + nandivexW) / 2;
     if (parakhLogo)
@@ -225,12 +225,12 @@ export async function renderCertificate(input: {
   } else {
     drawImageFit(page, trainer, { x: safeLeft + 40, y: logoY, w: 130, h: logoH }, 'left');
     if (parakhLogo)
-      drawImageFit(page, parakhLogo, { x: cx - 70, y: logoY, w: 140, h: logoH }, 'center');
+      drawImageFit(page, parakhLogo, { x: cx - 85, y: logoY, w: 170, h: logoH }, 'center');
     if (nandivexLogo)
       drawImageFit(
         page,
         nandivexLogo,
-        { x: safeRight - 40 - 150, y: logoY, w: 150, h: logoH },
+        { x: safeRight - 40 - 140, y: logoY, w: 140, h: logoH },
         'right',
       );
   }
