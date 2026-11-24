@@ -1,6 +1,6 @@
 # Copy to backend.hcl (git-ignored) and fill in. One state key per environment.
 bucket         = "parakh-tfstate-<aws-account-id>"
-key            = "staging/terraform.tfstate" # production/terraform.tfstate for production
+key            = "production/terraform.tfstate"
 region         = "ap-south-1"
 use_lockfile   = true
 encrypt        = true

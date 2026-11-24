@@ -20,9 +20,6 @@ AWS_REGION=${AWS_REGION}
 EOF
 
 compose=(docker compose --env-file .deploy.env -f docker-compose.yml)
-if [ "$ENVIRONMENT" = staging ]; then
-  compose+=(-f docker-compose.staging.yml)
-fi
 
 # Database URL from the RDS-managed secret (password is URL-encoded; TLS is required by RDS).
 DB_SECRET=$(aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$DB_SECRET_ARN" \

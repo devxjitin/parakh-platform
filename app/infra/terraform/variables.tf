@@ -4,11 +4,11 @@ variable "project" {
 }
 
 variable "environment" {
-  description = "staging or production"
+  description = "production"
   type        = string
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "environment must be staging or production."
+    condition     = contains(["production"], var.environment)
+    error_message = "environment must be production."
   }
 }
 
@@ -90,13 +90,13 @@ variable "github_immutable_subject" {
 }
 
 variable "create_github_oidc_provider" {
-  description = "The GitHub OIDC provider is account-wide. true in ONE environment (staging), false elsewhere."
+  description = "The GitHub OIDC provider is account-wide. true in ONE environment, false elsewhere."
   type        = bool
   default     = true
 }
 
 variable "ses_events_endpoint" {
-  description = "Full HTTPS URL of the API's mail-events endpoint including its secret key, for example https://api-staging.parakh.nandivex.in/mail/ses-events?key=SES_EVENTS_KEY. Empty = no subscription."
+  description = "Full HTTPS URL of the API's mail-events endpoint including its secret key, for example https://api.<domain>/mail/ses-events?key=SES_EVENTS_KEY. Empty = no subscription."
   type        = string
   default     = ""
   sensitive   = true
