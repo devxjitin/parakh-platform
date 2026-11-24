@@ -7117,3 +7117,86 @@ body:has(.app) > .site-footer {
 .admin-table .sub-table .code-chip {
   margin: 0 0 0 8px;
 }
+
+/* Sidebar: the menu scrolls on short screens; the footer (legal links) always stays visible. */
+.sidebar {
+  overflow: hidden;
+}
+.sidebar > .nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-right: -6px;
+  padding-right: 6px;
+}
+.sidebar > .sidebar-foot {
+  flex: none;
+}
+.sidebar > .sidebar-head {
+  flex: none;
+}
+.nav-item {
+  padding-block: 7px;
+}
+.nav-label {
+  padding-top: 10px;
+}
+@media (max-height: 860px) {
+  .nav-label {
+    padding-top: 8px;
+    padding-bottom: 4px;
+  }
+  .foot-copy {
+    display: none;
+  }
+}
+
+/* App scrollbar: slim, rounded, in the app's colours, no arrow buttons. */
+:root {
+  --scroll-thumb: #cdd3dd;
+  --scroll-thumb-hover: #aab3c2;
+}
+@supports selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scroll-thumb);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scroll-thumb-hover);
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--primary);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+}
+/* The sidebar menu keeps its own slimmer bar. */
+.sidebar > .nav::-webkit-scrollbar {
+  width: 8px;
+}
