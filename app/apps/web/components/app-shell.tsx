@@ -54,14 +54,6 @@ function navFor(role: string): NavItem[] {
   ];
 }
 
-/** The legal pages (the same links as the public footer, see LEGAL_LINKS in legal.tsx). */
-const LEGAL_NAV: { href: string; label: string }[] = [
-  { href: '/terms/', label: 'Terms' },
-  { href: '/privacy/', label: 'Privacy' },
-  { href: '/refund-policy/', label: 'Refund policy' },
-  { href: '/contact/', label: 'Contact' },
-];
-
 const CRUMBS: Record<string, string> = {
   dashboard: 'Home',
   practice: 'Practice',
@@ -193,17 +185,6 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
         {user && (
           // Profile and Sign out are in the account menu at the top right.
           <div className="sidebar-foot">
-            <div className="foot-legal">
-              {LEGAL_NAV.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className={`foot-link${pathname.startsWith(l.href.slice(0, -1)) ? ' active' : ''}`}
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </div>
             <small className="foot-copy">© NandiVex Technologies</small>
           </div>
         )}
