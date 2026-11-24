@@ -13,6 +13,7 @@ export const appUrl = (path: string) => `${APP_URL}${path}`;
 export const PRICING = {
   EXAM_CREATION_PAISE: 99_00,
   EXAM_JOIN_PAISE: 49_00,
+  EXAMINER_SHARE_PERCENT: 50,
 } as const;
 
 export const formatInr = (paise: number) => `₹${(paise / 100).toFixed(2)}`;
