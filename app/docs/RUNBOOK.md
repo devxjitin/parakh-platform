@@ -4,16 +4,16 @@ For the person on call (today: one developer). Short, concrete, and honest about
 
 ## 1. Where things live
 
-| Thing                    | Where                                                                                                                                                                                              |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web (static site)        | S3 bucket behind CloudFront. Built and uploaded by the `web` job of the **Deploy staging** workflow.                                                                                               |
-| API                      | Docker containers on one EC2 host, started by `docker compose` (`infra/deploy/docker-compose.yml`: `caddy` and `api`). App files are in `/opt/parakh` on the host.                                 |
-| Database                 | RDS Postgres 16, single instance, **not Multi-AZ**, not publicly reachable. Automated backups, 7 days by default (`db_backup_retention_days`), nightly window 01:30–02:30 IST.                     |
-| App settings and secrets | SSM Parameter Store, one parameter per setting: `/parakh/<environment>/<NAME>` (for example `/parakh/staging/JWT_ACCESS_SECRET`). `deploy.sh` copies them into `/opt/parakh/.env` on every deploy. |
-| Database password        | AWS Secrets Manager (RDS-managed). `deploy.sh` reads it; never put it in SSM.                                                                                                                      |
-| Images                   | ECR, tagged with the git commit SHA.                                                                                                                                                               |
-| Mail                     | Amazon SES. Bounce notices arrive at a secret URL guarded by `SES_EVENTS_KEY`.                                                                                                                     |
-| Payments                 | Razorpay (production). Staging uses the fake provider, allowed only because `/parakh/staging/ALLOW_FAKE_PAYMENTS=true`. **Never set that in production.**                                          |
+| Thing                    | Where                                                                                                                                                                                                 |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web (static site)        | S3 bucket behind CloudFront. Built and uploaded by the `web` job of the **Deploy production** workflow.                                                                                               |
+| API                      | Docker containers on one EC2 host, started by `docker compose` (`infra/deploy/docker-compose.yml`: `caddy` and `api`). App files are in `/opt/parakh` on the host.                                    |
+| Database                 | RDS Postgres 16, single instance, **not Multi-AZ**, not publicly reachable. Automated backups, 7 days by default (`db_backup_retention_days`), nightly window 01:30–02:30 IST.                        |
+| App settings and secrets | SSM Parameter Store, one parameter per setting: `/parakh/<environment>/<NAME>` (for example `/parakh/production/JWT_ACCESS_SECRET`). `deploy.sh` copies them into `/opt/parakh/.env` on every deploy. |
+| Database password        | AWS Secrets Manager (RDS-managed). `deploy.sh` reads it; never put it in SSM.                                                                                                                         |
+| Images                   | ECR, tagged with the git commit SHA.                                                                                                                                                                  |
+| Mail                     | Amazon SES. Bounce notices arrive at a secret URL guarded by `SES_EVENTS_KEY`.                                                                                                                        |
+| Payments                 | Razorpay. **Never set `ALLOW_FAKE_PAYMENTS` in production.**                                                                                                                                          |
 
 Region is `ap-south-1`. Terraform state is configured in `infra/terraform/backend.hcl`; per-environment values are in `infra/terraform/envs/`.
 
@@ -33,7 +33,7 @@ Region is `ap-south-1`. Terraform state is configured in `infra/terraform/backen
 
 - Set `SENTRY_DSN` in `/parakh/<environment>/` in SSM for the API. Set `NEXT_PUBLIC_SENTRY_DSN` in the GitHub deployment environment for the static web build. Use the DSN from each Sentry project. Deploy both services after changing these values.
 - The API reports unexpected request exceptions. The browser reports uncaught errors, unhandled rejections and errors caught by the app's React boundaries. Events carry the deployment environment and commit. Payloads keep exception types and application stack locations. They omit exception messages, request data, user context and breadcrumbs.
-- To verify after deployment, run the command below inside the staging API container from the app directory. Confirm the returned event ID under the API project in Sentry. In the staging site browser console, run `setTimeout(() => { throw new TypeError('Staging smoke check'); }, 0)`. Confirm a browser event with the staging environment and current release in the web project.
+- To verify after deployment, run the command below inside the production API container from the app directory. Confirm the returned event ID under the API project in Sentry. In the production site browser console, run `setTimeout(() => { throw new TypeError('Staging smoke check'); }, 0)`. Confirm a browser event with the production environment and current release in the web project.
 
   ```bash
   node -e 'const s=require("./dist/common/sentry"); const id=s.captureApiException(new Error("Staging smoke check")); require("@sentry/node").flush(5000).then(ok=>{ if (!id || !ok) process.exitCode=1; else console.log(id); })'
@@ -41,17 +41,17 @@ Region is `ap-south-1`. Terraform state is configured in `infra/terraform/backen
 
 ## 3. Deploy
 
-Normal path: merge to `main` → **CI** → **Deploy staging** runs on its own (web to S3 and CloudFront, API image to ECR, then `deploy.sh` on the host over SSM). `deploy.sh` runs `prisma migrate deploy` **before** starting the new version; a failed migration stops the deploy and leaves the running version alone. It then waits up to 60 seconds for `/health` to report the database `ok`.
+Normal path: merge to `main` → **CI** passes → run **Deploy production** by hand from the Actions tab (web to S3 and CloudFront, API image to ECR, then `deploy.sh` on the host over SSM). `deploy.sh` runs `prisma migrate deploy` **before** starting the new version; a failed migration stops the deploy and leaves the running version alone. It then waits up to 60 seconds for `/health` to report the database `ok`.
 
 The coding-submission migration preserves old judging records in PostgreSQL at `archive."CodeSubmission"`. The API no longer queries those records.
 
 Watch the run in the GitHub Actions tab. The image build normally takes about 5 minutes. If it has run past 10 minutes it is stuck: cancel it, wait for it to show cancelled, then **Re-run all jobs**.
 
-Production deploys are not automated yet (there is only a staging workflow). **NOT YET DECIDED:** approval step and trigger for production.
+Deploys are manual only: there is no automatic trigger, and the `production` environment can require a reviewer.
 
 ## 4. Roll back
 
-Code: open the last good **Deploy staging** run in GitHub Actions and **Re-run all jobs**. A re-run builds and deploys that run's commit, not the latest one.
+Code: open the last good **Deploy production** run in GitHub Actions and **Re-run all jobs**. A re-run builds and deploys that run's commit, not the latest one.
 
 **Database changes do not roll back.** Migrations only go forward. Going back to older code is safe only if the older code tolerates the newer schema. All migrations so far only add columns and tables, with one exception: `20261130100000_exam_status_cleanup` removed unused values from the `ExamStatus` enum. Code from before that migration will **not** run against a database that has had it. If a bad migration is the problem, restore the database (section 7) rather than rolling the code back.
 
@@ -66,7 +66,7 @@ Normal path (Admin → Payments): find the payment, press **Refund**, give a rea
 
 ## 6. Rotate secrets
 
-Edit the parameter in SSM (`/parakh/<environment>/<NAME>`, type SecureString), then **deploy** (re-run the latest Deploy staging run) so `deploy.sh` rewrites `.env` and restarts the containers.
+Edit the parameter in SSM (`/parakh/<environment>/<NAME>`, type SecureString), then **deploy** (re-run the latest Deploy production run) so `deploy.sh` rewrites `.env` and restarts the containers.
 
 | Secret                                   | Effect of changing it                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -92,7 +92,7 @@ RDS keeps automated backups and allows **point-in-time restore** to any moment i
 
 Recovery objectives today: data loss up to the last 5 minutes before the failure (point-in-time), and **hours** of downtime, since a restore takes a new instance and a manual switch. There is no standby: the database is single-AZ.
 
-### Staging restore drill
+### Restore drill (run once on the former staging environment, since removed)
 
 - [x] Restore staging to a point one hour earlier into a new private instance.
 - [x] Connect from the app host and compare main-table counts and ledger totals.
@@ -131,7 +131,7 @@ Recovery objectives today: data loss up to the last 5 minutes before the failure
 | CloudWatch alarms                                            | Seven alarms on staging. EC2, RDS, and API 5xx alarms are in `ap-south-1`. The Route 53 HTTPS check for `/health` reports to the API health alarm in `us-east-1`. See Staging alarms below. |
 | Uptime check from outside AWS                                | Not done.                                                                                                                                                                                   |
 
-### Staging alarms
+### Alarms (the removed staging environment had these; production monitoring is not set up yet)
 
 Terraform defines the alarms and SNS topics in `infra/terraform/monitoring.tf`. Infrastructure alarms publish to `parakh-staging-infra-alarms` in Mumbai. The API health alarm publishes to `parakh-staging-api-health-alarms` in N. Virginia. Each email subscription requires a separate SNS confirmation.
 

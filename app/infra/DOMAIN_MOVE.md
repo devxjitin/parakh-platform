@@ -1,5 +1,7 @@
 # Moving to parakh.nandivex.in
 
+> Record only. The staging environment was removed from the repository; ignore the staging steps below.
+
 The product is **Parakh** and its address is **`parakh.nandivex.in`** (production web) with the API at
 `api.parakh.nandivex.in`. Staging becomes `app-staging.parakh.nandivex.in` / `api-staging.parakh.nandivex.in`.
 The code and Terraform values already say this.
