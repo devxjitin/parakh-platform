@@ -50,6 +50,7 @@ describe('access', () => {
       `/admin/reports/monthly?month=${month()}`,
       '/admin/reports/series',
       '/admin/exams',
+      '/admin/trainers/collections',
       '/admin/audit',
       '/admin/settings',
     ]) {
@@ -157,6 +158,94 @@ describe('monthly report: how much did we earn and owe', () => {
     expect(s[2].grossPaise).toBe(19_900 + 14_900);
     expect(s[0].grossPaise).toBe(0);
     expect(s[0].month < s[1].month && s[1].month < s[2].month).toBe(true);
+  });
+});
+
+describe('trainer collections: how much was collected for each trainer', () => {
+  const collections = async (query = '') =>
+    (await get(admin, `/admin/trainers/collections${query}`).expect(200)).body;
+
+  it('shows what students paid on a trainer exam, and the trainer share while it accrues', async () => {
+    await students(3);
+    const r = await collections();
+    expect(r.total).toBe(1);
+    const row = r.rows[0];
+    expect(row).toMatchObject({
+      email: 'trainer@example.com',
+      exams: 1,
+      payments: 3,
+      collectedPaise: 3 * 14_900, // the publishing fee is NandiVex's, not collected for the trainer
+      refundedPaise: 0,
+      shareEarnedPaise: 3 * 7_450,
+      paidOutPaise: 0,
+      accruingPaise: 3 * 7_450, // results are not published yet
+      payableNowPaise: 0,
+    });
+    expect(row.perExam).toEqual([
+      expect.objectContaining({ examId: exam.examId, payments: 3, collectedPaise: 3 * 14_900 }),
+    ]);
+    expect(r.totals).toEqual({
+      collectedPaise: 3 * 14_900,
+      shareEarnedPaise: 3 * 7_450,
+      paidOutPaise: 0,
+    });
+  });
+
+  it('takes refunds off the collected amount and shows payouts and what is payable', async () => {
+    await students(4);
+    await ctx.prisma.exam.update({ where: { id: exam.examId }, data: { status: 'RESULTS_FINAL' } });
+    const payment = await ctx.prisma.payment.findFirstOrThrow({
+      where: { examId: exam.examId, purpose: 'EXAM_JOIN' },
+    });
+    await ctx
+      .http()
+      .post(`/admin/finance/payments/${payment.id}/refund`)
+      .set(auth(admin))
+      .send({ reason: 'Student asked' })
+      .expect(200);
+    const trainerRow = await ctx.prisma.user.findUniqueOrThrow({
+      where: { email: 'trainer@example.com' },
+    });
+    await ctx
+      .http()
+      .post('/admin/finance/payouts')
+      .set(auth(admin))
+      .send({ examinerId: trainerRow.id, amountPaise: 10_000, utr: 'UTR123456' })
+      .expect(200);
+
+    const row = (await collections()).rows[0];
+    expect(row.payments).toBe(4); // the refunded order still counts as a payment
+    expect(row.refundedPaise).toBe(14_900);
+    expect(row.collectedPaise).toBe(3 * 14_900);
+    expect(row.shareEarnedPaise).toBe(3 * 7_450);
+    expect(row.paidOutPaise).toBe(10_000);
+    expect(row.accruingPaise).toBe(0);
+    expect(row.payableNowPaise).toBe(3 * 7_450 - 10_000);
+    expect(row.perExam[0]).toMatchObject({ refundedPaise: 14_900, collectedPaise: 3 * 14_900 });
+  });
+
+  it('lists trainers with no payments yet, searches by name or email, and skips other roles', async () => {
+    await students(1);
+    await signUp(ctx, { role: 'EXAMINER', email: 'quiet@example.com' });
+    const all = await collections();
+    expect(all.total).toBe(2); // students and the admin are not trainers
+    const quiet = all.rows.find((x: { email: string }) => x.email === 'quiet@example.com');
+    expect(quiet).toMatchObject({ exams: 0, payments: 0, collectedPaise: 0, perExam: [] });
+
+    const found = await collections('?q=QUIET');
+    expect(found.total).toBe(1);
+    expect(found.rows[0].email).toBe('quiet@example.com');
+    expect((await collections('?q=nobody-here')).rows).toEqual([]);
+  });
+
+  it('pages the list', async () => {
+    await signUp(ctx, { role: 'EXAMINER', email: 'second@example.com' });
+    const p1 = await collections('?pageSize=1&page=1');
+    const p2 = await collections('?pageSize=1&page=2');
+    expect(p1.total).toBe(2);
+    expect(p1.rows).toHaveLength(1);
+    expect(p2.rows).toHaveLength(1);
+    expect(p1.rows[0].examinerId).not.toBe(p2.rows[0].examinerId);
   });
 });
 
