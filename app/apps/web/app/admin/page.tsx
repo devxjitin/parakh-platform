@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import type {
   AdminExamRowDto,
   AdminOverviewDto,
@@ -10,6 +9,8 @@ import type {
   PageDto,
   PlatformSettings,
   SeriesPointDto,
+  TrainerCollectionRowDto,
+  TrainerCollectionsDto,
 } from '@parakh/shared';
 import {
   Alert,
@@ -23,14 +24,51 @@ import {
 import { api } from '../../lib/api';
 import { useRequireAuth } from '../../lib/auth';
 import { confirmDialog } from '../../components/dialogs';
+import { SearchField } from '../../components/search-field';
+import { ADMIN_TAB_EVENT } from '../../components/app-shell';
 
 const rupees = (paise: number) =>
   `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const when = (iso: string) => new Date(iso).toLocaleString();
 
-type Tab = 'overview' | 'exams' | 'users' | 'audit' | 'settings';
+const dayFmt = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+const timeFmt = new Intl.DateTimeFormat('en-IN', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
+/** "24 Nov 2026" over "8:20 am to 9:20 am" (or both dates when the exam spans days). */
+function examWindow(startsAt: string | null, endsAt: string | null) {
+  if (!startsAt) return { top: 'No start set', bottom: '' };
+  const s = new Date(startsAt);
+  if (!endsAt) return { top: dayFmt.format(s), bottom: `from ${timeFmt.format(s)}` };
+  const e = new Date(endsAt);
+  if (dayFmt.format(s) === dayFmt.format(e)) {
+    return { top: dayFmt.format(s), bottom: `${timeFmt.format(s)} – ${timeFmt.format(e)}` };
+  }
+  return {
+    top: `${dayFmt.format(s)}, ${timeFmt.format(s)}`,
+    bottom: `to ${dayFmt.format(e)}, ${timeFmt.format(e)}`,
+  };
+}
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('') || '?';
+
+type Tab = 'overview' | 'trainers' | 'exams' | 'users' | 'audit' | 'settings';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'trainers', label: 'Trainers' },
   { key: 'exams', label: 'Exams' },
   { key: 'users', label: 'Users' },
   { key: 'audit', label: 'Audit log' },
@@ -46,10 +84,15 @@ export default function AdminConsolePage() {
     const t = new URLSearchParams(window.location.search).get('tab') as Tab | null;
     if (t && TABS.some((x) => x.key === t)) setTab(t);
   }, []);
-  function choose(t: Tab) {
-    setTab(t);
-    window.history.replaceState(null, '', `?tab=${t}`);
-  }
+  // The sidebar can pick a tab too; follow it.
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const t = (e as CustomEvent<string>).detail as Tab;
+      if (TABS.some((x) => x.key === t)) setTab(t);
+    };
+    window.addEventListener(ADMIN_TAB_EVENT, onTab);
+    return () => window.removeEventListener(ADMIN_TAB_EVENT, onTab);
+  }, []);
 
   if (loading || !user) {
     return (
@@ -69,20 +112,8 @@ export default function AdminConsolePage() {
   return (
     <Shell wide>
       <PageHeader title="Admin console" subtitle="Run Parakh: money, people, exams and settings" />
-      <div className="tabs" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            className="tab"
-            aria-selected={tab === t.key}
-            onClick={() => choose(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
       {tab === 'overview' && <Overview />}
+      {tab === 'trainers' && <Trainers />}
       {tab === 'exams' && <Exams />}
       {tab === 'users' && <Users selfId={user.id} />}
       {tab === 'audit' && <Audit />}
@@ -202,7 +233,7 @@ function Overview() {
             {report.examiners.length === 0 ? (
               <p className="muted">No trainer activity in this month.</p>
             ) : (
-              <div className="table-wrap">
+              <div className="table-wrap admin-table">
                 <table>
                   <thead>
                     <tr>
@@ -230,24 +261,13 @@ function Overview() {
                 </table>
               </div>
             )}
-            <div className="toolbar" style={{ marginTop: 12 }}>
-              <Link className="btn btn-secondary btn-link" href="/admin/payouts/">
-                Payouts
-              </Link>
-              <Link className="btn btn-secondary btn-link" href="/admin/payments/">
-                Payments and refunds
-              </Link>
-              <Link className="btn btn-secondary btn-link" href="/admin/certificates/">
-                Certificates
-              </Link>
-            </div>
           </>
         )}
       </section>
 
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Last 12 months</h2>
-        <div className="table-wrap">
+        <div className="table-wrap admin-table">
           <table>
             <thead>
               <tr>
@@ -320,6 +340,185 @@ function Pager({
   );
 }
 
+function Trainers() {
+  const [data, setData] = useState<TrainerCollectionsDto | null>(null);
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [open, setOpen] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const p = new URLSearchParams({ page: String(page) });
+    if (q.trim()) p.set('q', q.trim());
+    api<TrainerCollectionsDto>(`/admin/trainers/collections?${p}`)
+      .then((d) => {
+        setData(d);
+        setError('');
+      })
+      .catch((e) => setError(describeError(e).message));
+  }, [q, page]);
+
+  const row = (t: TrainerCollectionRowDto) => {
+    const isOpen = open === t.examinerId;
+    return (
+      <>
+        <tr className={`expandable${isOpen ? ' is-open' : ''}`}>
+          <td>
+            <button
+              type="button"
+              className="row-toggle"
+              aria-expanded={isOpen}
+              onClick={() => setOpen(isOpen ? null : t.examinerId)}
+            >
+              <svg
+                aria-hidden
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+              <span className="avatar" aria-hidden>
+                {initials(t.name)}
+              </span>
+              <span className="person-text">
+                <span className="cell-title">{t.name}</span>
+                <span className="muted">{t.email}</span>
+              </span>
+            </button>
+          </td>
+          <td className="num">{t.payments}</td>
+          <td className="num">
+            <strong>{rupees(t.collectedPaise)}</strong>
+            {t.refundedPaise > 0 && <div className="muted">{rupees(t.refundedPaise)} refunded</div>}
+          </td>
+          <td className="num">{rupees(t.shareEarnedPaise)}</td>
+          <td className="num">{rupees(t.paidOutPaise)}</td>
+          <td className="num">
+            {rupees(t.payableNowPaise)}
+            {t.accruingPaise > 0 && <div className="muted">{rupees(t.accruingPaise)} accruing</div>}
+          </td>
+        </tr>
+        {isOpen && (
+          <tr className="detail-row">
+            <td colSpan={6}>
+              {t.perExam.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  No student payments on this trainer&apos;s exams yet.
+                </p>
+              ) : (
+                <table className="sub-table">
+                  <thead>
+                    <tr>
+                      <th>Exam</th>
+                      <th>Status</th>
+                      <th className="num">Payments</th>
+                      <th className="num">Collected</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {t.perExam.map((e) => (
+                      <tr key={e.examId}>
+                        <td>
+                          <span className="cell-title">{e.title}</span>
+                          {e.code && <code className="code-chip">{e.code}</code>}
+                        </td>
+                        <td>
+                          <StatusBadge status={e.status} />
+                        </td>
+                        <td className="num">{e.payments}</td>
+                        <td className="num">
+                          {rupees(e.collectedPaise)}
+                          {e.refundedPaise > 0 && (
+                            <div className="muted">{rupees(e.refundedPaise)} refunded</div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </td>
+          </tr>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <div className="stack">
+      {data && (
+        <div className="stats">
+          <StatCard
+            label="Collected for trainers"
+            value={rupees(data.totals.collectedPaise)}
+            note="student payments on this page, after refunds"
+            icon="zap"
+            highlight
+          />
+          <StatCard
+            label="Trainers' share"
+            value={rupees(data.totals.shareEarnedPaise)}
+            note="earned by the trainers listed"
+            icon="shield"
+          />
+          <StatCard
+            label="Paid out"
+            value={rupees(data.totals.paidOutPaise)}
+            note="already sent to them"
+            icon="check"
+          />
+        </div>
+      )}
+      <section className="card admin-list">
+        <div className="toolbar admin-filters">
+          <SearchField
+            placeholder="Search trainer name or email"
+            value={q}
+            onChange={(v) => {
+              setQ(v);
+              setPage(1);
+              setOpen(null);
+            }}
+          />
+          {data && <span className="muted admin-count">{data.total} trainers</span>}
+        </div>
+        {error && <Alert>{error}</Alert>}
+        {data && (
+          <>
+            <div className="table-wrap admin-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trainer</th>
+                    <th className="num">Payments</th>
+                    <th className="num">Collected</th>
+                    <th className="num">Their share</th>
+                    <th className="num">Paid out</th>
+                    <th className="num">Payable now</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.rows.map((t) => (
+                    <Fragment key={t.examinerId}>{row(t)}</Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {data.rows.length === 0 && <p className="muted">No trainers match.</p>}
+            <Pager page={data.page} pageSize={data.pageSize} total={data.total} onPage={setPage} />
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function Exams() {
   const [data, setData] = useState<PageDto<AdminExamRowDto> | null>(null);
   const [q, setQ] = useState('');
@@ -341,18 +540,18 @@ function Exams() {
   useEffect(() => load(), [load]);
 
   return (
-    <section className="card">
-      <div className="toolbar">
-        <input
+    <section className="card admin-list">
+      <div className="toolbar admin-filters">
+        <SearchField
           placeholder="Search title, code or trainer"
           value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
+          onChange={(v) => {
+            setQ(v);
             setPage(1);
           }}
-          style={{ minWidth: 240 }}
         />
         <select
+          aria-label="Filter by status"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
@@ -366,44 +565,55 @@ function Exams() {
             </option>
           ))}
         </select>
+        {data && <span className="muted admin-count">{data.total} exams</span>}
       </div>
       {error && <Alert>{error}</Alert>}
       {data && (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>
                   <th>Exam</th>
                   <th>Trainer</th>
                   <th>Status</th>
-                  <th>Joined</th>
-                  <th>Attempts</th>
+                  <th className="num">Joined</th>
+                  <th className="num">Attempts</th>
                   <th>Window</th>
                 </tr>
               </thead>
               <tbody>
-                {data.rows.map((e) => (
-                  <tr key={e.id}>
-                    <td>
-                      {e.title}
-                      {e.code && <div className="muted">{e.code}</div>}
-                    </td>
-                    <td>
-                      {e.trainerName}
-                      <div className="muted">{e.trainerEmail}</div>
-                    </td>
-                    <td>
-                      <StatusBadge status={e.status} />
-                    </td>
-                    <td>{e.enrollments}</td>
-                    <td>{e.attempts}</td>
-                    <td className="muted">
-                      {e.startsAt ? when(e.startsAt) : 'no start'}
-                      {e.endsAt ? ` → ${when(e.endsAt)}` : ''}
-                    </td>
-                  </tr>
-                ))}
+                {data.rows.map((e) => {
+                  const w = examWindow(e.startsAt, e.endsAt);
+                  return (
+                    <tr key={e.id}>
+                      <td>
+                        <div className="cell-title">{e.title}</div>
+                        {e.code && <code className="code-chip">{e.code}</code>}
+                      </td>
+                      <td>
+                        <div className="person">
+                          <span className="avatar" aria-hidden>
+                            {initials(e.trainerName)}
+                          </span>
+                          <span className="person-text">
+                            <span className="cell-title">{e.trainerName}</span>
+                            <span className="muted">{e.trainerEmail}</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <StatusBadge status={e.status} />
+                      </td>
+                      <td className="num">{e.enrollments}</td>
+                      <td className="num">{e.attempts}</td>
+                      <td>
+                        <div className="cell-title">{w.top}</div>
+                        {w.bottom && <div className="muted">{w.bottom}</div>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -479,16 +689,15 @@ function Users({ selfId }: { selfId: string }) {
   }
 
   return (
-    <section className="card">
-      <div className="toolbar">
-        <input
+    <section className="card admin-list">
+      <div className="toolbar admin-filters">
+        <SearchField
           placeholder="Search name or email"
           value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
+          onChange={(v) => {
+            setQ(v);
             setPage(1);
           }}
-          style={{ minWidth: 240 }}
         />
         <select
           value={role}
@@ -506,7 +715,7 @@ function Users({ selfId }: { selfId: string }) {
       {error && <Alert>{error}</Alert>}
       {data && (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>
@@ -527,7 +736,9 @@ function Users({ selfId }: { selfId: string }) {
                         {!u.emailVerifiedAt && ', email not verified'}
                       </div>
                     </td>
-                    <td>{u.role.toLowerCase()}</td>
+                    <td style={{ textTransform: 'capitalize' }}>
+                      {u.role === 'EXAMINER' ? 'trainer' : u.role.toLowerCase()}
+                    </td>
                     <td>
                       <StatusBadge status={u.status} />
                     </td>
@@ -594,22 +805,21 @@ function Audit() {
   }, [action, page]);
 
   return (
-    <section className="card">
-      <div className="toolbar">
-        <input
+    <section className="card admin-list">
+      <div className="toolbar admin-filters">
+        <SearchField
           placeholder="Filter by action, e.g. payout, refund, settings"
           value={action}
-          onChange={(e) => {
-            setAction(e.target.value);
+          onChange={(v) => {
+            setAction(v);
             setPage(1);
           }}
-          style={{ minWidth: 280 }}
         />
       </div>
       {error && <Alert>{error}</Alert>}
       {data && (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>

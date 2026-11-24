@@ -80,6 +80,43 @@ export interface AdminExamRowDto {
   createdAt: string;
 }
 
+/** What students paid on one trainer's exam (join fees and sponsored seats). Paise. */
+export interface TrainerExamCollectionDto {
+  examId: string;
+  title: string;
+  code: string | null;
+  status: string;
+  /** Paid orders, refunded ones included. */
+  payments: number;
+  /** Received minus refunded. */
+  collectedPaise: number;
+  refundedPaise: number;
+}
+
+/** One trainer's money: collected from students, their share, what was paid out, what is left. */
+export interface TrainerCollectionRowDto {
+  examinerId: string;
+  name: string;
+  email: string;
+  exams: number;
+  payments: number;
+  /** Received from students on this trainer's exams, after refunds. */
+  collectedPaise: number;
+  refundedPaise: number;
+  /** The trainer's share of it. */
+  shareEarnedPaise: number;
+  paidOutPaise: number;
+  /** Share still accruing (results not published yet). */
+  accruingPaise: number;
+  /** Share that can be paid now. */
+  payableNowPaise: number;
+  perExam: TrainerExamCollectionDto[];
+}
+
+export interface TrainerCollectionsDto extends PageDto<TrainerCollectionRowDto> {
+  totals: { collectedPaise: number; shareEarnedPaise: number; paidOutPaise: number };
+}
+
 export interface AuditRowDto {
   id: string;
   action: string;

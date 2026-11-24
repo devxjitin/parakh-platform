@@ -177,7 +177,7 @@ export default function AdminCertificatesPage() {
             Certificates appear here after a trainer publishes an exam&apos;s results.
           </p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>
@@ -257,7 +257,7 @@ export default function AdminCertificatesPage() {
         ) : rows.length === 0 ? (
           <p className="muted">Nothing here.</p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>
