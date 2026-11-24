@@ -107,7 +107,6 @@ const ROLE_SHORT: Record<string, string> = {
 let sidebarCollapsed = false;
 let sidebarRestored = false;
 const SIDEBAR_KEY = 'parakh.sidebar';
-const GROUPS_KEY = 'parakh.navgroups';
 
 export function AppShell({ children, narrow }: { children: React.ReactNode; narrow?: boolean }) {
   const { user, logout } = useAuth();
@@ -120,8 +119,6 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
   const [menuOpen, setMenuOpen] = useState(false);
   // Which admin console tab is open, read from the address (and kept in step by the console).
   const [adminTab, setAdminTab] = useState('overview');
-  // Sidebar sections the person folded shut (remembered).
-  const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const footRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,27 +151,6 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
     }
   }, []);
 
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(GROUPS_KEY) ?? '[]');
-      if (Array.isArray(saved)) setClosedGroups(saved.filter((x) => typeof x === 'string'));
-    } catch {
-      /* not remembered */
-    }
-  }, []);
-
-  function toggleGroup(label: string) {
-    setClosedGroups((cur) => {
-      const next = cur.includes(label) ? cur.filter((x) => x !== label) : [...cur, label];
-      try {
-        window.localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
-      } catch {
-        /* not remembered */
-      }
-      return next;
-    });
-  }
-
   function toggleCollapsed() {
     const next = !sidebarCollapsed;
     sidebarCollapsed = next;
@@ -204,19 +180,6 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
   }, [menuOpen]);
 
   const items = user ? navFor(user.role) : [];
-  const onConsole = pathname === '/admin' || pathname === '/admin/';
-  const isActive = (item: NavItem) =>
-    item.tab
-      ? onConsole && adminTab === item.tab
-      : pathname === item.href.slice(0, -1) ||
-        pathname === item.href ||
-        (item.href !== '/dashboard/' && pathname.startsWith(item.href.slice(0, -1) + '/'));
-  // Items grouped under their section heading (an item with `group` starts a new section).
-  const groups: { label: string; items: { item: NavItem; index: number }[] }[] = [];
-  items.forEach((item, index) => {
-    if (item.group || groups.length === 0) groups.push({ label: item.group ?? 'Menu', items: [] });
-    groups[groups.length - 1]!.items.push({ item, index });
-  });
   const segments = pathname.split('/').filter(Boolean);
   const crumbs = segments.map((s) => CRUMBS[s] ?? s);
   const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
@@ -230,60 +193,37 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
           <Brand />
         </div>
         <nav className="nav">
-          {groups.map((g) => {
-            // Menu (Home) is always visible; every other section folds.
-            const foldable = g.label !== 'Menu';
-            const hasActive = g.items.some((it) => isActive(it.item));
-            const closed = foldable && closedGroups.includes(g.label) && !hasActive;
+          {items.map((item, i) => {
+            const onConsole = pathname === '/admin' || pathname === '/admin/';
+            const active = item.tab
+              ? onConsole && adminTab === item.tab
+              : pathname === item.href.slice(0, -1) ||
+                pathname === item.href ||
+                (item.href !== '/dashboard/' && pathname.startsWith(item.href.slice(0, -1) + '/'));
             return (
-              <div className="nav-section" key={g.label}>
-                {foldable ? (
-                  <button
-                    type="button"
-                    className="nav-label nav-label-btn"
-                    aria-expanded={!closed}
-                    onClick={() => toggleGroup(g.label)}
-                  >
-                    <span>{g.label}</span>
-                    <Icon name="chevron" size={14} />
-                  </button>
-                ) : (
-                  <div className="nav-label">{g.label}</div>
-                )}
-                <div className={`nav-items${closed ? ' is-closed' : ''}`}>
-                  <div className="nav-items-inner">
-                    {g.items.map(({ item, index }) => {
-                      const active = isActive(item);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={`nav-item${active ? ' active' : ''}`}
-                          aria-current={active ? 'page' : undefined}
-                          title={item.label}
-                          tabIndex={closed ? -1 : undefined}
-                          style={{ ['--i' as string]: index }}
-                          onClick={(e) => {
-                            // Already on the console: switch tab in place, no page load.
-                            if (item.tab && onConsole) {
-                              e.preventDefault();
-                              window.history.replaceState(null, '', `?tab=${item.tab}`);
-                              setAdminTab(item.tab);
-                              window.dispatchEvent(
-                                new CustomEvent(ADMIN_TAB_EVENT, { detail: item.tab }),
-                              );
-                            }
-                          }}
-                        >
-                          <span className="nav-ico">
-                            <Icon name={item.icon} />
-                          </span>
-                          <span>{item.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
+              <div className="nav-group" key={item.href}>
+                {item.group && <div className="nav-label">{item.group}</div>}
+                <Link
+                  href={item.href}
+                  className={`nav-item${active ? ' active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                  title={item.label}
+                  style={{ ['--i' as string]: i }}
+                  onClick={(e) => {
+                    // Already on the console: switch tab in place, no page load.
+                    if (item.tab && onConsole) {
+                      e.preventDefault();
+                      window.history.replaceState(null, '', `?tab=${item.tab}`);
+                      setAdminTab(item.tab);
+                      window.dispatchEvent(new CustomEvent(ADMIN_TAB_EVENT, { detail: item.tab }));
+                    }
+                  }}
+                >
+                  <span className="nav-ico">
+                    <Icon name={item.icon} />
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
               </div>
             );
           })}
