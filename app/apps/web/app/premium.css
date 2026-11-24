@@ -6898,3 +6898,221 @@ body:has(.app) > .site-footer {
 .cc-dialog .cc-result-head {
   padding-right: 36px;
 }
+
+
+/* Admin lists: modern filters + table. */
+.admin-filters {
+  margin-bottom: 16px;
+}
+.search-field {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 380px;
+}
+.search-field svg {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim, #9aa3b2);
+  pointer-events: none;
+}
+.toolbar .search-field input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file']) {
+  width: 100%;
+  padding-left: 40px;
+}
+.admin-count {
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+.admin-table {
+  border-radius: 14px;
+}
+.admin-table th {
+  padding: 12px 18px;
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 16px 18px;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+.admin-table td .muted {
+  font-size: 0.82rem;
+}
+.admin-table .cell-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.admin-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 1%;
+  white-space: nowrap;
+}
+.admin-table td:last-child {
+  white-space: nowrap;
+}
+.admin-table .code-chip {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted, #6b7280);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+}
+.admin-table .person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.admin-table .person-text {
+  display: grid;
+  min-width: 0;
+}
+.admin-table .avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+/* System-health chip in a page header: calm when fine, loud only on failure. */
+.health-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted, #4b5563);
+  font-size: 0.82rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-xs);
+  cursor: default;
+}
+.health-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+.health-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: #16a34a;
+  opacity: 0.25;
+}
+
+/* Segmented-control tabs: one soft track, the active tab is a raised white pill. */
+.tabs {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px;
+  margin: 16px 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tabs .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 8px 16px;
+  margin: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.tabs .tab:hover {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.05);
+}
+.tabs .tab[aria-selected='true'] {
+  background: var(--surface, #fff);
+  color: var(--primary);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+.tabs .tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* Expandable trainer rows. */
+.admin-table .row-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-table .row-toggle > svg {
+  flex: none;
+  color: var(--text-dim, #9aa3b2);
+  transition: transform 0.15s ease;
+}
+.admin-table .row-toggle[aria-expanded='true'] > svg {
+  transform: rotate(90deg);
+  color: var(--primary);
+}
+.admin-table tr.is-open > td {
+  background: var(--surface-2);
+}
+.admin-table tr.detail-row > td {
+  padding: 8px 18px 20px 64px;
+  background: var(--surface-2);
+}
+.admin-table .sub-table {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.88rem;
+}
+.admin-table .sub-table td,
+.admin-table .sub-table th {
+  padding: 10px 14px;
+}
+.admin-table .sub-table .code-chip {
+  margin: 0 0 0 8px;
+}

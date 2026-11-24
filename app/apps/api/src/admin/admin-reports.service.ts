@@ -8,6 +8,8 @@ import {
   type MonthlyReportDto,
   type PageDto,
   type SeriesPointDto,
+  type TrainerCollectionRowDto,
+  type TrainerCollectionsDto,
 } from '@parakh/shared';
 import { LedgerService } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -282,6 +284,105 @@ export class AdminReportsService {
         meta: r.meta,
         createdAt: r.createdAt.toISOString(),
       })),
+    };
+  }
+
+  // ---------------------------------------------------------------- trainers
+
+  /**
+   * "How much has been collected for each trainer?" Student payments (join fees, sponsored seats)
+   * on the trainer's exams, after refunds, next to the trainer's share and what was paid out.
+   */
+  async trainerCollections(q: {
+    q?: string;
+    page: number;
+    pageSize: number;
+  }): Promise<TrainerCollectionsDto> {
+    const like = (field: string) => ({ [field]: { contains: q.q, mode: 'insensitive' as const } });
+    const where: Prisma.UserWhereInput = {
+      role: 'EXAMINER',
+      ...(q.q ? { OR: [like('name'), like('email')] } : {}),
+    };
+    const [total, trainers] = await this.prisma.$transaction([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip: (q.page - 1) * q.pageSize,
+        take: q.pageSize,
+        select: { id: true, name: true, email: true },
+      }),
+    ]);
+
+    const exams = await this.prisma.exam.findMany({
+      where: { examinerId: { in: trainers.map((t) => t.id) } },
+      select: { id: true, title: true, code: true, status: true, examinerId: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    const paid = await this.prisma.payment.groupBy({
+      by: ['examId', 'status'],
+      where: {
+        examId: { in: exams.map((e) => e.id) },
+        purpose: { in: ['EXAM_JOIN', 'SEAT_PACK'] },
+        status: { in: ['CAPTURED', 'PENDING_REFUND', 'REFUNDED'] },
+      },
+      _sum: { amountPaise: true },
+      _count: { _all: true },
+    });
+    const byExam = new Map<string, { payments: number; received: number; refunded: number }>();
+    for (const r of paid) {
+      if (!r.examId) continue;
+      const cur = byExam.get(r.examId) ?? { payments: 0, received: 0, refunded: 0 };
+      cur.payments += r._count._all;
+      cur.received += sum(r._sum.amountPaise);
+      if (r.status === 'REFUNDED') cur.refunded += sum(r._sum.amountPaise);
+      byExam.set(r.examId, cur);
+    }
+
+    const rows: TrainerCollectionRowDto[] = [];
+    for (const t of trainers) {
+      const mine = exams.filter((e) => e.examinerId === t.id);
+      const perExam = mine
+        .map((e) => {
+          const m = byExam.get(e.id) ?? { payments: 0, received: 0, refunded: 0 };
+          return {
+            examId: e.id,
+            title: e.title,
+            code: e.code,
+            status: e.status,
+            payments: m.payments,
+            collectedPaise: m.received - m.refunded,
+            refundedPaise: m.refunded,
+          };
+        })
+        .filter((e) => e.payments > 0);
+      const b = await this.ledger.balances(t.id);
+      const releasedNet = b.netPaise; // released minus paid out
+      rows.push({
+        examinerId: t.id,
+        name: t.name,
+        email: t.email,
+        exams: mine.length,
+        payments: perExam.reduce((s, e) => s + e.payments, 0),
+        collectedPaise: perExam.reduce((s, e) => s + e.collectedPaise, 0),
+        refundedPaise: perExam.reduce((s, e) => s + e.refundedPaise, 0),
+        shareEarnedPaise: releasedNet + b.paidPaise + b.accruedPaise,
+        paidOutPaise: b.paidPaise,
+        accruingPaise: b.accruedPaise,
+        payableNowPaise: b.payablePaise,
+        perExam,
+      });
+    }
+    return {
+      total,
+      page: q.page,
+      pageSize: q.pageSize,
+      rows,
+      totals: {
+        collectedPaise: rows.reduce((s, r) => s + r.collectedPaise, 0),
+        shareEarnedPaise: rows.reduce((s, r) => s + r.shareEarnedPaise, 0),
+        paidOutPaise: rows.reduce((s, r) => s + r.paidOutPaise, 0),
+      },
     };
   }
 }
