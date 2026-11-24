@@ -1,6 +1,6 @@
 import { LegalPage } from '../../components/legal';
 
-export const metadata = { title: 'Refund policy | Parakh' };
+export const metadata = { title: 'Refund policy' };
 
 export default function RefundPolicyPage() {
   return (

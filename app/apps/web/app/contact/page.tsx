@@ -1,6 +1,6 @@
 import { LegalPage } from '../../components/legal';
 
-export const metadata = { title: 'Contact | Parakh' };
+export const metadata = { title: 'Contact' };
 
 export default function ContactPage() {
   return (

@@ -1,6 +1,6 @@
 import { LegalPage } from '../../components/legal';
 
-export const metadata = { title: 'Privacy policy | Parakh' };
+export const metadata = { title: 'Privacy policy' };
 
 export default function PrivacyPage() {
   return (
