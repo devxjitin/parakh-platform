@@ -6899,7 +6899,6 @@ body:has(.app) > .site-footer {
   padding-right: 36px;
 }
 
-
 /* Admin lists: modern filters + table. */
 .admin-filters {
   margin-bottom: 16px;
@@ -6917,7 +6916,9 @@ body:has(.app) > .site-footer {
   color: var(--text-dim, #9aa3b2);
   pointer-events: none;
 }
-.toolbar .search-field input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file']) {
+.toolbar
+  .search-field
+  input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file']) {
   width: 100%;
   padding-left: 40px;
 }
