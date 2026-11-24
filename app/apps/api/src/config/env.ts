@@ -12,7 +12,7 @@ const schema = z.object({
   // The marketing website, which calls the public certificate check from the browser.
   WEBSITE_ORIGIN: z.string().optional(),
   MAIL_TRANSPORT: z.enum(['ses', 'smtp', 'log', 'memory']).default('log'),
-  SES_FROM_EMAIL: z.string().default('no-reply@parakh.nandivex.in'),
+  SES_FROM_EMAIL: z.string().default('no-reply@parakh.nandivex.com'),
   SES_CONFIGURATION_SET: z.string().optional(),
   // Used when MAIL_TRANSPORT=smtp. SMTP_SECURE defaults to true on port 465 and false otherwise.
   SMTP_HOST: z.string().optional(),

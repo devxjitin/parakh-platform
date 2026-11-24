@@ -79,3 +79,31 @@ output "web_hostname" {
 output "api_hostname" {
   value = local.api_hostname
 }
+
+output "site_hostname" {
+  value = local.site_hostname
+}
+
+output "site_bucket" {
+  value = local.site_enabled ? aws_s3_bucket.site[0].bucket : ""
+}
+
+output "site_cloudfront_domain" {
+  description = "Point the bare domain (parakh.<company domain>) at this with a CNAME."
+  value       = local.site_enabled ? aws_cloudfront_distribution.site[0].domain_name : ""
+}
+
+output "site_cloudfront_distribution_id" {
+  value = local.site_enabled ? aws_cloudfront_distribution.site[0].id : ""
+}
+
+output "site_certificate_validation_records" {
+  description = "Add these CNAMEs so ACM can issue the website certificate."
+  value = local.site_enabled ? [
+    for o in aws_acm_certificate.site[0].domain_validation_options : {
+      name  = o.resource_record_name
+      type  = o.resource_record_type
+      value = o.resource_record_value
+    }
+  ] : []
+}
