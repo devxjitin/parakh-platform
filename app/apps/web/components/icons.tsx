@@ -148,6 +148,12 @@ const PATHS = {
       <path d="m22 7-8.5 8.5-5-5L2 17" />
     </>
   ),
+  settings: (
+    <>
+      <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+      <path d="M14 4v4M8 10v4M16 16v4" />
+    </>
+  ),
   lock: (
     <>
       <rect x="3" y="11" width="18" height="11" rx="2" />
