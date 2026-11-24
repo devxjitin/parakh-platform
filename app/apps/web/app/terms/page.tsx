@@ -1,6 +1,6 @@
 import { LegalPage } from '../../components/legal';
 
-export const metadata = { title: 'Terms of use | Parakh' };
+export const metadata = { title: 'Terms of use' };
 
 export default function TermsPage() {
   return (
