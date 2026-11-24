@@ -37,7 +37,12 @@ interface NavItem {
   icon: IconName;
   /** Section heading shown above this item's group. */
   group?: string;
+  /** Admin console tab this item opens (the console keeps its tab in `?tab=`). */
+  tab?: string;
 }
+
+/** Fired when the admin tab changes without a route change, so the sidebar and console stay in sync. */
+export const ADMIN_TAB_EVENT = 'parakh:admin-tab';
 
 function navFor(role: string): NavItem[] {
   const home: NavItem = { href: '/dashboard/', label: 'Home', icon: 'home', group: 'Menu' };
@@ -51,9 +56,14 @@ function navFor(role: string): NavItem[] {
   }
   return [
     home,
-    { href: '/admin/', label: 'Console', icon: 'layers' },
-    { href: '/exams/', label: 'Exams', icon: 'exams' },
-    { href: '/admin/payouts/', label: 'Payouts', icon: 'wallet' },
+    { href: '/exams/', label: 'My exams', icon: 'exams' },
+    { href: '/admin/', tab: 'overview', label: 'Overview', icon: 'layers', group: 'Console' },
+    { href: '/admin/?tab=trainers', tab: 'trainers', label: 'Trainers', icon: 'graduation' },
+    { href: '/admin/?tab=exams', tab: 'exams', label: 'All exams', icon: 'book' },
+    { href: '/admin/?tab=users', tab: 'users', label: 'Users', icon: 'users' },
+    { href: '/admin/?tab=audit', tab: 'audit', label: 'Audit log', icon: 'clock' },
+    { href: '/admin/?tab=settings', tab: 'settings', label: 'Settings', icon: 'settings' },
+    { href: '/admin/payouts/', label: 'Payouts', icon: 'wallet', group: 'Money' },
     { href: '/admin/payments/', label: 'Payments', icon: 'card' },
     { href: '/admin/certificates/', label: 'Certificates', icon: 'award' },
   ];
@@ -99,10 +109,17 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
   const [instant, setInstant] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const footRef = useRef<HTMLDivElement>(null);
+  // Current admin console tab, read from the address (no useSearchParams: the app is a static export).
+  const [adminTab, setAdminTab] = useState('overview');
 
   useEffect(() => {
     setOpen(false);
     setMenuOpen(false);
+    const read = () =>
+      setAdminTab(new URLSearchParams(window.location.search).get('tab') || 'overview');
+    read();
+    window.addEventListener(ADMIN_TAB_EVENT, read);
+    return () => window.removeEventListener(ADMIN_TAB_EVENT, read);
   }, [pathname]);
 
   // After a full reload, bring back the last choice (client-side route changes already keep it).
@@ -164,10 +181,14 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
         </div>
         <nav className="nav">
           {items.map((item, i) => {
-            const active =
-              pathname === item.href.slice(0, -1) ||
-              pathname === item.href ||
-              (item.href !== '/dashboard/' && pathname.startsWith(item.href.slice(0, -1) + '/'));
+            const base = item.href.split('?')[0]!;
+            const onAdmin = pathname === '/admin' || pathname === '/admin/';
+            // Only one item is ever active: console tabs match on the tab, the rest on their path.
+            const active = item.tab
+              ? onAdmin && adminTab === item.tab
+              : pathname === base.slice(0, -1) ||
+                pathname === base ||
+                (base !== '/dashboard/' && pathname.startsWith(base.slice(0, -1) + '/'));
             return (
               <div className="nav-group" key={item.href}>
                 {item.group && <div className="nav-label">{item.group}</div>}
@@ -177,6 +198,15 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
                   aria-current={active ? 'page' : undefined}
                   title={item.label}
                   style={{ ['--i' as string]: i }}
+                  onClick={(e) => {
+                    // Already on the console: switch tab in place instead of re-navigating.
+                    if (item.tab && onAdmin) {
+                      e.preventDefault();
+                      window.history.replaceState(null, '', item.href);
+                      window.dispatchEvent(new Event(ADMIN_TAB_EVENT));
+                      setOpen(false);
+                    }
+                  }}
                 >
                   <span className="nav-ico">
                     <Icon name={item.icon} />

@@ -26,6 +26,7 @@ import { api } from '../../lib/api';
 import { useRequireAuth } from '../../lib/auth';
 import { confirmDialog } from '../../components/dialogs';
 import { SearchField } from '../../components/search-field';
+import { ADMIN_TAB_EVENT } from '../../components/app-shell';
 
 const rupees = (paise: number) =>
   `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -66,15 +67,6 @@ const initials = (name: string) =>
     .join('') || '?';
 
 type Tab = 'overview' | 'trainers' | 'exams' | 'users' | 'audit' | 'settings';
-const TAB_ICONS: Record<Tab, string> = {
-  overview: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
-  trainers: 'M3 7h18v13H3zM8 7V4h8v3M3 13h18',
-  exams: 'M4 4h16v16H4zM8 9h8M8 13h8M8 17h5',
-  users:
-    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-  audit: 'M12 8v4l3 3M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5',
-  settings: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4',
-};
 const TABS: { key: Tab; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'trainers', label: 'Trainers' },
@@ -89,14 +81,16 @@ export default function AdminConsolePage() {
   const [tab, setTab] = useState<Tab>('overview');
 
   // Remember the tab in the address, so a refresh stays where you were.
+  // The tabs live in the sidebar now; it changes `?tab=` and fires ADMIN_TAB_EVENT.
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab') as Tab | null;
-    if (t && TABS.some((x) => x.key === t)) setTab(t);
+    const read = () => {
+      const t = new URLSearchParams(window.location.search).get('tab') as Tab | null;
+      setTab(t && TABS.some((x) => x.key === t) ? t : 'overview');
+    };
+    read();
+    window.addEventListener(ADMIN_TAB_EVENT, read);
+    return () => window.removeEventListener(ADMIN_TAB_EVENT, read);
   }, []);
-  function choose(t: Tab) {
-    setTab(t);
-    window.history.replaceState(null, '', `?tab=${t}`);
-  }
 
   if (loading || !user) {
     return (
@@ -116,32 +110,6 @@ export default function AdminConsolePage() {
   return (
     <Shell wide>
       <PageHeader title="Admin console" subtitle="Run Parakh: money, people, exams and settings" />
-      <div className="tabs" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            className="tab"
-            aria-selected={tab === t.key}
-            onClick={() => choose(t.key)}
-          >
-            <svg
-              aria-hidden
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d={TAB_ICONS[t.key]} />
-            </svg>
-            {t.label}
-          </button>
-        ))}
-      </div>
       {tab === 'overview' && <Overview />}
       {tab === 'trainers' && <Trainers />}
       {tab === 'exams' && <Exams />}
