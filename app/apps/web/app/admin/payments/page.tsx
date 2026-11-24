@@ -14,7 +14,6 @@ import { api } from '../../../lib/api';
 import { RefundRequestsPanel } from '../../../components/refund-requests-panel';
 import { useRequireAuth } from '../../../lib/auth';
 import { promptDialog } from '../../../components/dialogs';
-import { SearchField } from '../../../components/search-field';
 
 const rupees = (paise: number) => `₹${(paise / 100).toFixed(2)}`;
 const PURPOSE: Record<AdminPaymentRow['purpose'], string> = {
@@ -115,8 +114,13 @@ export default function AdminPaymentsPage() {
         </Alert>
       )}
       <section className="card">
-        <div className="toolbar admin-filters">
-          <SearchField placeholder="Search name, email or exam" value={q} onChange={setQ} />
+        <div className="toolbar" style={{ marginBottom: 12 }}>
+          <input
+            placeholder="Search name, email or exam"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            style={{ minWidth: 240 }}
+          />
           <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
             <option value="">All types</option>
             <option value="EXAM_JOIN">Student join fee</option>
@@ -137,14 +141,14 @@ export default function AdminPaymentsPage() {
         ) : rows.length === 0 ? (
           <p className="muted">No payments match.</p>
         ) : (
-          <div className="table-wrap admin-table">
+          <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Receipt</th>
                   <th>Customer</th>
                   <th>For</th>
-                  <th className="num">Amount</th>
+                  <th>Amount</th>
                   <th>Status</th>
                   <th />
                 </tr>
@@ -167,7 +171,7 @@ export default function AdminPaymentsPage() {
                       {p.purpose === 'SEAT_PACK' && ` (${p.quantity})`}
                       <div className="muted">{p.examTitle ?? ''}</div>
                     </td>
-                    <td className="num">{rupees(p.amountPaise)}</td>
+                    <td>{rupees(p.amountPaise)}</td>
                     <td>
                       <StatusBadge
                         status={STATUS_KIND[p.status]}
