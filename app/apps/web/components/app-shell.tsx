@@ -51,7 +51,13 @@ function navFor(role: string): NavItem[] {
   }
   return [
     home,
-    { href: '/admin/?tab=overview', label: 'Overview', icon: 'layers', tab: 'overview', group: 'Console' },
+    {
+      href: '/admin/?tab=overview',
+      label: 'Overview',
+      icon: 'layers',
+      tab: 'overview',
+      group: 'Console',
+    },
     { href: '/admin/?tab=trainers', label: 'Trainers', icon: 'graduation', tab: 'trainers' },
     { href: '/admin/?tab=exams', label: 'Exams', icon: 'exams', tab: 'exams' },
     { href: '/admin/?tab=users', label: 'Users', icon: 'users', tab: 'users' },

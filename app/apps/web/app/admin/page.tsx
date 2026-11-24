@@ -31,8 +31,16 @@ const rupees = (paise: number) =>
   `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const when = (iso: string) => new Date(iso).toLocaleString();
 
-const dayFmt = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-const timeFmt = new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+const dayFmt = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+const timeFmt = new Intl.DateTimeFormat('en-IN', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
 
 /** "24 Nov 2026" over "8:20 am to 9:20 am" (or both dates when the exam spans days). */
 function examWindow(startsAt: string | null, endsAt: string | null) {
@@ -728,7 +736,9 @@ function Users({ selfId }: { selfId: string }) {
                         {!u.emailVerifiedAt && ', email not verified'}
                       </div>
                     </td>
-                    <td style={{ textTransform: 'capitalize' }}>{u.role === 'EXAMINER' ? 'trainer' : u.role.toLowerCase()}</td>
+                    <td style={{ textTransform: 'capitalize' }}>
+                      {u.role === 'EXAMINER' ? 'trainer' : u.role.toLowerCase()}
+                    </td>
                     <td>
                       <StatusBadge status={u.status} />
                     </td>
