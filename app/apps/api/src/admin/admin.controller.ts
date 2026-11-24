@@ -39,6 +39,7 @@ const examsQuery = pageQuery.extend({
   status: z.string().max(40).optional(),
   q: z.string().trim().max(100).optional(),
 });
+const trainersQuery = pageQuery.extend({ q: z.string().trim().max(100).optional() });
 const auditQuery = pageQuery.extend({ action: z.string().trim().max(60).optional() });
 const monthQuery = z.object({ month: monthSchema });
 const seriesQuery = z.object({ months: z.coerce.number().int().min(1).max(24).default(12) });
@@ -151,6 +152,14 @@ export class AdminController {
   @Get('reports/series')
   series(@Query(new ZodValidationPipe(seriesQuery)) q: z.infer<typeof seriesQuery>) {
     return this.reports.series(q.months);
+  }
+
+  /** Per-trainer money: collected from students, trainer share, paid out, still owed. */
+  @Get('trainers/collections')
+  trainerCollections(
+    @Query(new ZodValidationPipe(trainersQuery)) q: z.infer<typeof trainersQuery>,
+  ) {
+    return this.reports.trainerCollections(q);
   }
 
   @Get('exams')

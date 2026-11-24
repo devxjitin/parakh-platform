@@ -214,6 +214,10 @@ export default function AdminPayoutsPage() {
     }
   }
 
+  const ledgerOk = Boolean(
+    ledger && ledger.totalPaise === 0 && ledger.unbalancedTransactions.length === 0,
+  );
+
   if (loading || !user) {
     return (
       <Shell wide>
@@ -234,7 +238,17 @@ export default function AdminPayoutsPage() {
       <PageHeader
         title="Payouts"
         subtitle="Pay each trainer their 50% by UPI or bank transfer, then record the reference here."
-      />
+      >
+        {ledger && ledgerOk && (
+          <span
+            className="health-chip"
+            title={`Ledger check passed: ${ledger.transactions} transactions, ${ledger.entries} entries, all balance to the paisa.`}
+          >
+            <span className="health-dot" aria-hidden />
+            Ledger balanced
+          </span>
+        )}
+      </PageHeader>
       {error && <Alert>{error}</Alert>}
 
       {ledger && (
@@ -266,17 +280,9 @@ export default function AdminPayoutsPage() {
           />
         </div>
       )}
-      {ledger && (
-        <Alert
-          kind={
-            ledger.totalPaise === 0 && ledger.unbalancedTransactions.length === 0
-              ? 'success'
-              : 'error'
-          }
-        >
-          {ledger.totalPaise === 0 && ledger.unbalancedTransactions.length === 0
-            ? `Ledger check passed: ${ledger.transactions} transactions, ${ledger.entries} entries, all balance to the paisa.`
-            : `Ledger check FAILED: off by ${ledger.totalPaise} paise, ${ledger.unbalancedTransactions.length} unbalanced transactions.`}
+      {ledger && !ledgerOk && (
+        <Alert kind="error">
+          {`Ledger check FAILED: off by ${ledger.totalPaise} paise, ${ledger.unbalancedTransactions.length} unbalanced transactions. Stop payouts until this is checked.`}
         </Alert>
       )}
 
@@ -287,7 +293,7 @@ export default function AdminPayoutsPage() {
         ) : rows.length === 0 ? (
           <p className="muted">Nobody is owed money right now.</p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>
@@ -313,7 +319,7 @@ export default function AdminPayoutsPage() {
         {history.length === 0 ? (
           <p className="muted">No payouts yet.</p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap admin-table">
             <table>
               <thead>
                 <tr>
