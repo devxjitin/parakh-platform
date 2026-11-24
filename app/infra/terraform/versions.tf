@@ -51,9 +51,11 @@ locals {
   azs     = slice(data.aws_availability_zones.available.names, 0, 2)
   is_prod = var.environment == "production"
 
-  # Production: the platform itself lives at <domain> (parakh.nandivex.in) and its API at api.<domain>.
-  # Other environments use app-<env>.<domain> and api-<env>.<domain>. Certificate checks are a page
-  # of the same web app (/verify/), so they need no hostname of their own.
-  web_hostname = var.domain_name == "" ? "" : (var.environment == "production" ? var.domain_name : "app-${var.environment}.${var.domain_name}")
-  api_hostname = var.domain_name != "" ? "${var.environment == "production" ? "api" : "api-${var.environment}"}.${var.domain_name}" : ""
+  # Production: the marketing website lives at <domain> (parakh.nandivex.com), the web app at
+  # app.<domain> and the API at api.<domain>. Other environments use app-<env>.<domain> and
+  # api-<env>.<domain> and have no marketing website. Certificate checks are a page of the web app
+  # (/verify/) and a form on the website, so they need no hostname of their own.
+  web_hostname  = var.domain_name == "" ? "" : (local.is_prod ? "app.${var.domain_name}" : "app-${var.environment}.${var.domain_name}")
+  site_hostname = var.domain_name != "" && local.is_prod ? var.domain_name : ""
+  api_hostname  = var.domain_name != "" ? "${var.environment == "production" ? "api" : "api-${var.environment}"}.${var.domain_name}" : ""
 }

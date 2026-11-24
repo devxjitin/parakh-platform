@@ -1,16 +1,17 @@
 name: Deploy staging
 
-# Runs after CI passes on main, or manually from the Actions tab.
+# Manual only: staging is stopped to save cost (2026-11-24). To bring back the automatic deploy
+# after CI on main, restore the workflow_run trigger and point the staging OIDC trust at this repo.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: deploy-staging
   cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: app
 
 permissions:
   id-token: write # OIDC to AWS
@@ -40,6 +41,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run build -w @parakh/shared
         # NEXT_PUBLIC_* values are baked in at build time.

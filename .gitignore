@@ -16,6 +16,7 @@ playwright-report/
 
 # infra state
 .terraform/
+.terraform-*/
 *.tfstate*
 secret.auto.tfvars
 backend.hcl

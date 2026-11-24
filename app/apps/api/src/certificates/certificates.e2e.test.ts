@@ -740,8 +740,14 @@ describe('one results email per student', () => {
         ).toHaveLength(1),
       { timeout: 10_000 },
     );
-    const done = await ctx.prisma.attempt.findUniqueOrThrow({ where: { id: a.id } });
-    expect(done.resultEmailedAt).not.toBeNull();
+    // the send is marked right after the mail goes out, so wait for that write too
+    await vi.waitFor(
+      async () => {
+        const done = await ctx.prisma.attempt.findUniqueOrThrow({ where: { id: a.id } });
+        expect(done.resultEmailedAt).not.toBeNull();
+      },
+      { timeout: 10_000 },
+    );
     expect(await delivery.sweep({ ignoreDelay: true })).toBe(0); // not sent twice
   });
 

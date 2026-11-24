@@ -70,7 +70,10 @@ test('create an exam and publish it', async ({ page, request }) => {
     .click();
   await page.getByRole('button', { name: 'Start time' }).click();
   await page.getByRole('button', { name: 'Now' }).click();
-  await page.getByRole('button', { name: 'OK' }).click();
+  await page
+    .getByRole('dialog', { name: 'Pick a time' })
+    .getByRole('button', { name: 'Done' })
+    .click();
   // Next saves the plan, then opens the Questions step.
   await page.getByRole('button', { name: 'Next: Questions' }).click();
   await expect(page.locator('.stepper-current')).toContainText('Questions');
@@ -120,7 +123,7 @@ test('join with a code and an emailed code, take the exam on a phone and submit'
 
   // No account: exam code, then name and email, then the code we email.
   await page.goto('/join/');
-  await page.getByLabel('Exam code').fill(examCode);
+  await page.getByPlaceholder('NVX-XXXXXX').fill(examCode);
   await page.getByRole('button', { name: 'Find exam' }).click();
   await page.getByLabel(/Full name/).fill(student.name);
   await page.getByLabel('Email').fill(student.email);
@@ -141,7 +144,7 @@ test('join with a code and an emailed code, take the exam on a phone and submit'
     const written = page.getByPlaceholder('Type your response here...');
     if (await written.isVisible()) await written.fill('The provider secures the cloud.');
     else await page.locator('.attempt-opt-card').first().click();
-    if (i < 2) await page.getByRole('button', { name: 'Next' }).click();
+    if (i < 2) await page.getByRole('button', { name: 'Next' }).last().click();
   }
   await expect(page.getByRole('status').filter({ hasText: 'All saved' })).toBeVisible();
 
@@ -153,6 +156,11 @@ test('join with a code and an emailed code, take the exam on a phone and submit'
   await page.getByRole('button', { name: 'Question 1, answered' }).click();
   await expect(sheet).toBeHidden();
   await expect(page.locator('.q-head-main', { hasText: 'Question 1 of 3' })).toBeVisible();
+
+  // Submit sits on the last question, so jump there through the navigator again.
+  await page.getByRole('button', { name: /^Questions 3\/3/ }).click();
+  await page.getByRole('button', { name: 'Question 3, answered' }).click();
+  await expect(page.locator('.q-head-main', { hasText: 'Question 3 of 3' })).toBeVisible();
 
   // The submit dialog is a proper dialog: Escape closes it, and it opens again.
   await page.getByRole('button', { name: 'Submit exam' }).last().click();

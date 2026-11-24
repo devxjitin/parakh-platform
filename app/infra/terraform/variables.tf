@@ -101,3 +101,15 @@ variable "ses_events_endpoint" {
   default     = ""
   sensitive   = true
 }
+
+variable "app_subnet_index" {
+  description = "Which public subnet (0 = first AZ, 1 = second AZ) the app server runs in. Change it when AWS has no capacity for the instance type in an AZ."
+  type        = number
+  default     = 0
+}
+
+variable "app_capacity_reservation_id" {
+  description = "Optional targeted EC2 capacity reservation (cr-...) to launch the app server into. Only read at launch."
+  type        = string
+  default     = ""
+}

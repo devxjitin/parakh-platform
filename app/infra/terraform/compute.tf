@@ -72,9 +72,19 @@ resource "aws_iam_instance_profile" "app" {
 resource "aws_instance" "app" {
   ami                    = data.aws_ssm_parameter.al2023_arm64.value
   instance_type          = var.ec2_instance_type
-  subnet_id              = aws_subnet.public[0].id
+  subnet_id              = aws_subnet.public[var.app_subnet_index].id
   vpc_security_group_ids = [aws_security_group.app.id]
   iam_instance_profile   = aws_iam_instance_profile.app.name
+
+  # Launch into a held capacity reservation when AWS is short on this instance type.
+  dynamic "capacity_reservation_specification" {
+    for_each = var.app_capacity_reservation_id != "" ? [1] : []
+    content {
+      capacity_reservation_target {
+        capacity_reservation_id = var.app_capacity_reservation_id
+      }
+    }
+  }
 
   metadata_options {
     http_tokens                 = "required" # IMDSv2 only
@@ -103,7 +113,7 @@ resource "aws_instance" "app" {
 
   # Changing user_data should not destroy a running host; bootstrap is one-time.
   lifecycle {
-    ignore_changes = [ami, user_data]
+    ignore_changes = [ami, user_data, capacity_reservation_specification]
   }
 
   tags = { Name = "${local.name}-app" }

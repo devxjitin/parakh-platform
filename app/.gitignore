@@ -8,6 +8,7 @@ dist/
 .DS_Store
 coverage/
 .terraform/
+.terraform-*/
 *.tfstate*
 secret.auto.tfvars
 backend.hcl

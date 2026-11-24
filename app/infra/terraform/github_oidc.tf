@@ -84,6 +84,24 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = [aws_cloudfront_distribution.web.arn]
   }
 
+  dynamic "statement" {
+    for_each = local.site_enabled ? [1] : []
+    content {
+      sid       = "SiteBucketSync"
+      actions   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject", "s3:ListBucket"]
+      resources = [aws_s3_bucket.site[0].arn, "${aws_s3_bucket.site[0].arn}/*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = local.site_enabled ? [1] : []
+    content {
+      sid       = "InvalidateSiteCdn"
+      actions   = ["cloudfront:CreateInvalidation"]
+      resources = [aws_cloudfront_distribution.site[0].arn]
+    }
+  }
+
   statement {
     sid       = "EcrLogin"
     actions   = ["ecr:GetAuthorizationToken"]
