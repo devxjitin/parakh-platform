@@ -19,10 +19,13 @@ export const LEGAL_LINKS = [
 export function LegalPage({
   title,
   updated,
+  draft = true,
   children,
 }: {
   title: string;
   updated?: string;
+  /** False once the page has no [bracketed] items left and the owner has approved the wording. */
+  draft?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -37,9 +40,11 @@ export function LegalPage({
           Version {LEGAL_VERSION}
           {updated ? `, ${updated}` : ''}
         </p>
-        <div className="alert alert-info" role="note">
-          {DRAFT_NOTICE}
-        </div>
+        {draft && (
+          <div className="alert alert-info" role="note">
+            {DRAFT_NOTICE}
+          </div>
+        )}
         {children}
       </main>
     </div>
