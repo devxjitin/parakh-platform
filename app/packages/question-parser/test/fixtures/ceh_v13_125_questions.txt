@@ -1,0 +1,1001 @@
+### CEH V13 Practice Questions
+
+Question 1:
+What is a set of extensions to DNS that provide to DNS clients (resolvers) origin authentication, authenticated denial of existence and data integrity, but not availability or confidentiality?
+Options:
+- Zone transfer
+- Resource transfer
+- Resource records
+- DNSSEC (Correct)
+
+Question 2:
+Jack sent an email to Jenny with a business proposal. Jenny accepted it and fulfilled all her obligations. Jack suddenly refused his offer when everything was ready and said that he had never sent an email. Which of the following digital signature properties will help Jenny prove that Jack is lying?
+Options:
+- Integrity
+- Non-Repudiation (Correct)
+- Authentication
+- Confidentiality
+
+Question 3:
+Which of the following best describes a software firewall?
+Options:
+- Software firewall is placed between the anti-virus application and the IDS components of the operating system.
+- Software firewall is placed between the desktop and the software components of the operating system.
+- Software firewall is placed between the router and the networking components of the operating system.
+- Software firewall is placed between the normal application and the networking components of the operating system. (Correct)
+
+Question 4:
+What are the two main conditions for a digital signature?
+Options:
+- Unique and have special characters.
+- It has to be the same number of characters as a physical signature and must be unique.
+- Unforgeable and authentic. (Correct)
+- Legible and neat.
+
+Question 5:
+Maria is surfing the internet and try to find information about Super Security LLC. Which process is Maria doing?
+Options:
+- Enumeration
+- System Hacking
+- Footprinting (Correct)
+- Scanning
+
+Question 6:
+Maria conducted a successful attack and gained access to a Linux server. She wants to avoid that NIDS will not catch the succeeding outgoing traffic from this server in the future. Which of the following is the best way to avoid detection of NIDS?
+Options:
+- Encryption. (Correct)
+- Out of band signaling.
+- Alternate Data Streams.
+- Protocol Isolation.
+
+Question 7:
+Ivan, a black hat hacker, sends partial HTTP requests to the target webserver to exhaust the target server's maximum concurrent connection pool. He wants to ensure that all additional connection attempts are rejected. What type of attack does Ivan implement?
+Options:
+- Fragmentation
+- Slowloris (Correct)
+- Spoofed Session Flood
+- HTTP GET/POST
+
+Question 8:
+Define Metasploit module used to perform arbitrary, one-off actions such as port scanning, denial of service, SQL injection and fuzzing?
+Options:
+- Payload Module.
+- NOPS Module.
+- Exploit Module.
+- Auxiliary Module. (Correct)
+
+Question 9:
+Which regulation defines security and privacy controls for all U.S. federal information systems except those related to national security?
+Options:
+- PCI-DSS
+- NIST-800-53 (Correct)
+- EU Safe Harbor
+- HIPAA
+
+Question 10:
+Ivan, a black hat hacker, tries to call numerous random numbers inside the company, claiming he is from the technical support service. It offers company employee services in exchange for confidential data or login credentials. What method of social engineering does Ivan use?
+Options:
+- Reverse Social Engineering
+- Tailgating
+- Quid Pro Quo (Correct)
+- Elicitation
+
+Question 11:
+John performs black-box testing. It tries to pass IRC traffic over port 80/TCP from a compromised web-enabled host during the test. Traffic is blocked, but outbound HTTP traffic does not meet any obstacles. What type of firewall checks outbound traffic?
+Options:
+- Stateful
+- Packet Filtering
+- Circuit
+- Application (Correct)
+
+Question 12:
+Which layer 3 protocol allows for end-to-end encryption of the connection?
+Options:
+- SFTP
+- IPsec (Correct)
+- SSL
+- FTPS
+
+Question 13:
+John, a cybersecurity specialist, received a copy of the event logs from all firewalls, Intrusion Detection Systems (IDS) and proxy servers on a company's network. He tried to match all the registered events in all the logs, and he found that their sequence didn't match. What can cause such a problem?
+Options:
+- The security breach was a false positive.
+- A proper chain of custody was not observed while collecting the logs.
+- The network devices are not all synchronized. (Correct)
+- The attacker altered events from the logs.
+
+Question 14:
+Which of the following command-line flags set a stealth scan for Nmap?
+Options:
+- -ST
+- -SU
+- -sS (Correct)
+- -SM
+
+Question 15:
+The attacker posted a message and an image on the forum, in which he embedded a malicious link. When the victim clicks on this link, the victim's browser sends an authenticated request to a server. What type of attack did the attacker use?
+Options:
+- Cross-site request forgery (Correct)
+- Cross-site scripting
+- SQL injection
+- Session hijacking
+
+Question 16:
+The Web development team is holding an urgent meeting, as they have received information from testers about a new vulnerability in their Web software. They make an urgent decision to reduce the likelihood of using the vulnerability. The team beside to modify the software requirements to disallow users from entering HTML as input into their Web application. Determine the type of vulnerability that the test team found?
+Options:
+- Cross-site scripting vulnerability. (Correct)
+- Cross-site Request Forgery vulnerability.
+- SQL injection vulnerability.
+- Website defacement vulnerability.
+
+Question 17:
+You conduct an investigation and finds out that the browser of one of your employees sent malicious requests that the employee knew nothing about. Identify the web page vulnerability that the attacker used when the attack to your employee?
+Options:
+- File Inclusion Attack
+- Cross-Site Request Forgery (CSRF) (Correct)
+- Command Injection Attacks
+- Hidden Field Manipulation Attack
+
+Question 18:
+Identify the type of jailbreaking which allows user-level access and does not allow iboot-level access?
+Options:
+- Userland Exploit (Correct)
+- Bootrom Exploit
+- iBootrom Exploit
+- iBoot Exploit
+
+Question 19:
+Determine the type of SQL injection: SELECT * FROM user WHERE name = 'x' AND userid IS NULL; --';
+Options:
+- UNION SQL Injection.
+- End of Line Comment. (Correct)
+- Tautology.
+- Illegal/Logically Incorrect Query.
+
+Question 20:
+Which of the following SQL injection attack does an attacker usually bypassing user authentication and extract data by using a conditional OR clause so that the condition of the WHERE clause will always be true?
+Options:
+- UNION SQLI
+- Error-Based SQLi
+- End-of-Line Comment
+- Tautology (Correct)
+
+Question 21:
+Josh, a security analyst, wants to choose a tool for himself to examine links between data. One of the main requirements is to present data using graphs and link analysis. Which of the following tools will meet John's requirements?
+Options:
+- Metasploit.
+- Maltego. (Correct)
+- Analyst's Notebook.
+- Palantir.
+
+Question 22:
+Determine the attack according to the following scenario: Benjamin performs a cloud attack during the translation of the SOAP message in the TLS layer. He duplicates the body of the message and sends it to the server as a legitimate user. As a result of these actions, Benjamin managed to access the server resources to unauthorized access.
+Options:
+- Wrapping (Correct)
+- Cloud Hopper
+- Cloudborne
+- Side-channel
+
+Question 23:
+Determine what of the list below is the type of honeypots that simulates the real production network of the target organization?
+Options:
+- High-interaction Honeypots.
+- Pure Honeypots. (Correct)
+- Research honeypots.
+- Low-interaction Honeypots.
+
+Question 24:
+Which type of viruses tries to hide from antivirus programs by actively changing and corrupting the chosen service call interruptions when they are being run?
+Options:
+- Stealth/Tunneling virus (Correct)
+- Cavity virus
+- Polymorphic virus
+- Tunneling virus
+
+Question 25:
+Which of the following is not included in the list of recommendations of PCI Data Security Standards?
+Options:
+- Do not use vendor-supplied defaults for system passwords and other security parameters.
+- Rotate employees handling credit card transactions on a yearly basis to different departments. (Correct)
+- Protect stored cardholder data.
+- Encrypt transmission of cardholder data across open, public networks.
+
+Question 26:
+Philip, a cybersecurity specialist, needs a tool that can function as a network sniffer, record network activity, prevent and detect network intrusion. Which of the following tools is suitable for Philip?
+Options:
+- Nmap
+- Cain & Abel
+- Snort (Correct)
+- Nessus
+
+Question 27:
+Suppose your company has implemented identify people based on walking patterns and made it part of physical control access to the office. The system works according to the following principle: The camera captures people walking and identifies employees, and then they must attach their RFID badges to access the office. Which of the following best describes this technology?
+Options:
+- The solution will have a high level of false positives.
+- Biological motion cannot be used to identify people.
+- Although the approach has two phases, it actually implements just one authentication factor.
+- The solution implements the two factors authentication: physical object and physical characteristic. (Correct)
+
+Question 28:
+Which of the following protocols is used in a VPN for setting up a secure channel between two devices?
+Options:
+- PPP
+- SET
+- PEM
+- IPSEC (Correct)
+
+Question 29:
+You know that the application you are attacking is vulnerable to an SQL injection, but you cannot see the result of the injection. You send a SQL query to the database, which makes the database wait before it can react. You can see from the time the database takes to respond, whether a query is true or false. What type of SQL injection did you use?
+Options:
+- Blind SQLI. (Correct)
+- Out-of-band SQLi.
+- Error-based SQLi.
+- UNION SQLI.
+
+Question 30:
+Which of the following tools is a command-line vulnerability scanner that scans web servers for dangerous files/CGIs?
+Options:
+- John the Ripper
+- Kon-Boot
+- Snort
+- Nikto (Correct)
+
+Question 31:
+Which of the following application security testing method of white-box testing, in which only the source code of applications and their components is scanned for determines potential vulnerabilities in their software and architecture?
+Options:
+- IAST
+- DAST
+- SAST (Correct)
+- MAST
+
+Question 32:
+Which of the following is the method of determining the movement of a data packet from an untrusted external host to a protected internal host through a firewall?
+Options:
+- MITM
+- Firewalking (Correct)
+- Session hijacking
+- Network sniffing
+
+Question 33:
+Often, for a successful attack, hackers very skillfully simulate phishing messages. To do this, they collect the maximum information about the company that they will attack: emails of real employees (including information about the hierarchy in the company), information about the appearance of the message (formatting, logos), etc. What is the name of this stage of the hacker's work?
+Options:
+- Exploration stage
+- Investigation stage
+- Reconnaissance stage (Correct)
+- Enumeration stage
+
+Question 34:
+Imagine the following scenario: 1. An attacker created a website with tempting content and benner like: 'Do you want to make $10 000 in a month?'. 2. Victim clicks to the interesting and attractive content URL. 3. Attacker creates a transparent 'iframe' in front of the banner which victim attempts to click. Victim thinks that he/she clicks to the 'Do you want to make $10 000 in a month?' banner but actually he/she clicks to the content or UPL that exists in the transparent 'iframe' which is set up by the attacker. What is the name of the attack which is described in the scenario?
+Options:
+- Session Fixation
+- Clickjacking Attack (Correct)
+- HTML Injection
+- HTTP Parameter Pollution
+
+Question 35:
+Black hat hacker Ivan wants to implement a man-in-the-middle attack on the corporate network. For this, he connects his router to the network and redirects traffic to intercept packets. What can the administrator do to mitigate the attack?
+Options:
+- Use the Open Shortest Path First (OSPF).
+- Add message authentication to the routing protocol. (Correct)
+- Use only static routes in the corporation's network.
+- Redirection of the traffic is not possible without the explicit admin's confirmation.
+
+Question 36:
+Which of the options presented below is not a Bluetooth attack?
+Options:
+- Bluesmacking
+- Bluesnarfing
+- Bluejacking
+- Bluedriving (Correct)
+
+Question 37:
+You analyze the logs and see the following output of logs from the machine with the IP address of 192.168.0.132: 1. Time August 21 11:22:06 Port:20 Source: 192.168.0.30 Destination: 192.168.0.132 Protocol: TCP... What conclusion can you make based on this output?
+Options:
+- Denial of service attack targeting 192.168.0.132
+- Port scan targeting 192.168.0.30
+- Teardrop attack targeting 192.168.0.132
+- Port scan targeting 192.168.0.132 (Correct)
+
+Question 38:
+With which of the following SQL injection attacks can an attacker deface a web page, modify or add data stored in a database and compromised data integrity?
+Options:
+- Unauthorized access to an application.
+- Compromised Data Integrity. (Correct)
+- Loss of data availability.
+- Information Disclosure.
+
+Question 39:
+The attacker enters its malicious data into intercepted messages in a TCP session since source routing is disabled. He tries to guess the responses of the client and server. What hijacking technique is described in this example?
+Options:
+- RST
+- TCP/IP
+- Blind (Correct)
+- Registration
+
+Question 40:
+The attacker tries to take advantage of vulnerability where the application does not verify if the user is authorized to access the internal object via its name or key. Which of the following queries best describes an attempt to exploit an insecure direct object using the name of the valid account "User 1"?
+Options:
+- "GET/restricted/bank.getaccount('User1') HTTP/1.1 Host: westbank.com"
+- "GET/restricted/goldtransfer?to=Account&from=1 or 1=1' HTTP/1.1 Host: westbank.com"
+- "GET/restricted/\r\n\%00account%00User1%00access HTTP/1.1 Host: westbank.com"
+- "GET/restricted/accounts/?name=User1 HTTP/1.1 Host: westbank.com" (Correct)
+
+Question 41:
+What actions should be performed before using a Vulnerability Scanner for scanning a network?
+Options:
+- TCP/IP stack fingerprinting.
+- Checking if the remote host is alive. (Correct)
+- TCP/UDP Port scanning.
+- Firewall detection.
+
+Question 42:
+Which of the following is the risk that remains after the amount of risk left over after natural or inherent risks have been reduced?
+Options:
+- Residual risk (Correct)
+- Impact risk
+- Inherent risk
+- Deferred risk
+
+Question 43:
+Which of the following incident handling process phases is responsible for defining rules, employees training, creating a back-up, and preparing software and hardware resources before an incident occurs?
+Options:
+- Recovery
+- Containment
+- Identification
+- Preparation (Correct)
+
+Question 44:
+Wireshark is one of the most important tools for a cybersecurity specialist. It is used for network troubleshooting, analysis, software, etc. And you often have to work with a packet bytes pane. In what format is the data presented in this pane?
+Options:
+- ASCII only
+- Hexadecimal (Correct)
+- Binary
+- Decimal
+
+Question 45:
+Alex, a cyber security specialist, should conduct a pentest inside the network, while he received absolutely no information about the attacked network. What type of testing will Alex conduct?
+Options:
+- Internal, Black-box. (Correct)
+- External, Black-box.
+- Internal, Grey-box.
+- Internal, White-box.
+
+Question 46:
+Victor, a white hacker, received an order to perform a penetration test from the company "Test us". He starts collecting information and finds the email of an employee of this company in free access. Victor decides to send a letter to this email, changing the original email address to the email of the boss of this employee, "boss@testus.com". He asks the employee to immediately open the "link with the report" and check it. An employee of the company "Test us" opens this link and infects his computer. Thanks to these manipulations, Viktor gained access to the corporate network and successfully conducted a pentest. What type of attack did Victor use?
+Options:
+- Eavesdropping
+- Piggybacking
+- Social engineering (Correct)
+- Tailgating
+
+Question 47:
+Which of the following Nmap's commands allows you to most reduce the probability of detection by IDS when scanning common ports?
+Options:
+- nmap -ST -O -T0 (Correct)
+- nmap -A --host-timeout 99 -T1
+- nmap -ST -O -T2
+- nmap -A - Pn
+
+Question 48:
+Which of the following is a network software suite designed for 802.11 WEP and WPA-PSK keys cracking that can recover keys once enough data packets have been captured?
+Options:
+- Aircrack-ng (Correct)
+- WLAN-crack
+- Airguard
+- Wificracker
+
+Question 49:
+Which of the following best describes code injection?
+Options:
+- Form of attack in which a malicious user gains access to the codebase on the server and inserts new code.
+- Form of attack in which a malicious user inserts additional code into the JavaScript running in the browser.
+- Form of attack in which a malicious user gets the server to execute arbitrary code using a buffer overflow.
+- Form of attack in which a malicious user inserts text into a data field interpreted as code. (Correct)
+
+Question 50:
+John, a penetration tester, received an order to conduct an internal audit in the company. One of its tasks is to search for open ports on servers. Which of the following methods is the best solution for this task?
+Options:
+- Scan servers with Nmap. (Correct)
+- Scan servers with MBSA.
+- Manual scan on each server.
+- Telnet to every port on each server.
+
+Question 51:
+Alex, the penetration tester, performs a server scan. To do this, he uses the method where the TCP Header is split into many packets so that it becomes difficult to determine what packages are used for. Determine the scanning technique that Alex uses?
+Options:
+- ACK flag scanning
+- TCP Scanning
+- IP Fragmentation Scan (Correct)
+- Inverse TCP flag scanning
+
+Question 52:
+Which of the following is an encryption technique where data is encrypted by a sequence of photons that have a spinning trait while travelling from one end to another?
+Options:
+- Hardware-Based.
+- Quantum Cryptography. (Correct)
+- Homomorphic.
+- Elliptic Curve Cryptography.
+
+Question 53:
+Identify the standard by the description: A regulation contains a set of guidelines that everyone who processes any electronic data in medicine should adhere to. It includes information on medical practices, ensuring that all necessary measures are in place while saving, accessing, and sharing any electronic medical data to secure patient data.
+Options:
+- COBIT
+- ISO/IEC 27002
+- HIPAA (Correct)
+- FISMA
+
+Question 54:
+You makes a series of interactive queries, choosing subsequent plaintexts based on the information from the previous encryptions. What type of attack are you trying to perform?
+Options:
+- Chosen-plaintext attack
+- Ciphertext-only attack
+- Known-plaintext attack
+- Adaptive chosen-plaintext attack (Correct)
+
+Question 55:
+Which of the following options represents a conceptual characteristic of an anomaly-based IDS over a signature-based IDS?
+Options:
+- Can identify unknown attacks. (Correct)
+- Produces less false positives.
+- Cannot deal with encrypted network traffic.
+- Requires vendor updates for a new threat.
+
+Question 56:
+Which of the following is a protocol that used for querying databases that store the registered users or assignees of an Internet resource, such as a domain name, an IP address block or an autonomous system?
+Options:
+- CAPTCHA
+- Internet Engineering Task Force
+- Internet Assigned Numbers Authority
+- WHOIS (Correct)
+
+Question 57:
+Elon plans to make it difficult for the packet filter to determine the purpose of the packet when scanning. Which of the following scanning techniques will Elon use?
+Options:
+- ACK scanning.
+- IPID scanning.
+- ICMP scanning.
+- SYN/FIN scanning using IP fragments. (Correct)
+
+Question 58:
+Which of the following will allow you to prevent unauthorized network access to local area networks and other information assets by wireless devices?
+Options:
+- HIDS
+- AISS
+- WIPS (Correct)
+- NIDS
+
+Question 59:
+Identify Secure Hashing Algorithm, which produces a 160-bit digest from a message on principles similar to those used in MD4 and MD5?
+Options:
+- SHA-2
+- SHA-1 (Correct)
+- SHA-0
+- SHA-3
+
+Question 60:
+Ivan, the black hat hacker, split the attack traffic into many packets such that no single packet triggers the IDS. Which IDS evasion technique does Ivan use?
+Options:
+- Unicode Evasion.
+- Session Splicing. (Correct)
+- Low-bandwidth attacks.
+- Flooding.
+
+Question 61:
+Which of the following tools is packet sniffer, network detector and IDS for 802.11(a, b, g, n) wireless LANs?
+Options:
+- Abel
+- Nessus
+- Nmap
+- Kismet (Correct)
+
+Question 62:
+What is the purpose of the demilitarized zone?
+Options:
+- To add a protect to network devices.
+- To scan all traffic coming through the DMZ to the internal network.
+- To provide a place for a honeypot.
+- To add an extra layer of security to an organization's local area network. (Correct)
+
+Question 63:
+You managed to compromise a server with an IP address of 10.10.0.5, and you want to get fast a list of all the machines in this network. Which of the following Nmap command will you need?
+Options:
+- nmap -T4 -F 10.10.0.0/24 (Correct)
+- nmap -T4 -r 10.10.1.0/24
+- nmap -T4 -q 10.10.0.0/24
+- nmap -T4 -p 10.10.0.0/24
+
+Question 64:
+Attacker uses various IDS evasion techniques to bypass intrusion detection mechanisms. At the same time, IDS is configured to detect possible violations of the security policy, including unauthorized access and misuse. Which of the following evasion method depend on the Time-to-Live (TTL) fields of a TCP/IP?
+Options:
+- Obfuscation
+- Unicode Evasion
+- Denial-of-Service Attack
+- Insertion Attack (Correct)
+
+Question 65:
+alert tcp any any -> 10.199.10.3 21 (msg: "FTP on the network!";) Which system usually uses such a configuration setting?
+Options:
+- Firewall IPTable
+- Router IPTable
+- FTP Server rule
+- IDS (Correct)
+
+Question 66:
+What is a "Collision attack"?
+Options:
+- Collision attack on a hash tries to find two inputs producing the same hash value. (Correct)
+- Collision attacks break the hash into several parts, with the same bytes in each part to get the private key.
+- Collision attacks attempt to recover information from a hash.
+- Collision attacks try to change the hash.
+
+Question 67:
+Determine the attack by the description: Determine the attack by the description: The known-plaintext attack used against DES. This attack causes that encrypting plaintext with one DES key followed by encrypting it with a second DES key is no more secure than using a single key.
+Options:
+- Traffic analysis attack
+- Meet-in-the-middle attack (Correct)
+- Man-in-the-middle attack
+- Replay attack
+
+Question 68:
+Identify a vulnerability in OpenSSL that allows stealing the information protected under normal conditions by the SSL/TLS encryption used to secure the Internet?
+Options:
+- SSL/TLS Renegotiation Vulnerability
+- Heartbleed Bug (Correct)
+- Shellshock
+- POODLE
+
+Question 69:
+The evil hacker Antonio is trying to attack the loT device. He will use several fake identities to create a strong illusion of traffic congestion, affecting communication between neighbouring nodes and networks. What kind of attack does Antonio perform?
+Options:
+- Side-Channel Attack
+- Forged Malicious Device
+- Sybil Attack (Correct)
+- Exploit Kits
+
+Question 70:
+John, a penetration tester, decided to conduct SQL injection testing. He enters a huge amount of random data and observes changes in output and security loopholes in web applications. What SQL injection testing technique did John use?
+Options:
+- Dynamic Testing.
+- Static Testing.
+- Function Testing.
+- Fuzzing Testing. (Correct)
+
+Question 71:
+Which of the following Nmap options will you use if you want to scan fewer ports than the default?
+Options:
+- -p
+- -T
+- -sP
+- -F (Correct)
+
+Question 72:
+Rajesh, a system administrator found several unknown files in the root directory of his FTP server. He was very interested in a binary file named "mfs". Rajesh decided to check the FTP server logs and found that the anonymous user account logged in to the server, uploaded the files and ran the script using a function provided by the FTP server's software. Also, he found that "mfs" file is running as a process and it listening to a network port. What kind of vulnerability must exist to make this attack possible?
+Options:
+- File system permissions. (Correct)
+- Privilege escalation.
+- Brute force login.
+- Directory traversal.
+
+Question 73:
+Michael works as a system administrator. He receives a message that several sites are no longer available. Michael tried to go to the sites by URL, but it didn't work. Then he tried to ping the sites and enter IP addresses in the browser - it worked. What problem could Michael identify?
+Options:
+- Traffic is Blocked on UDP Port 69
+- Traffic is Blocked on UDP Port 53 (Correct)
+- Traffic is Blocked on UDP Port 88
+- Traffic is Blocked on UDP Port 56
+
+Question 74:
+Ivan, an evil hacker, conducts an SQLi attack that is based on True/False questions. What type of SQLi does Ivan use?
+Options:
+- Blind SQLi (Correct)
+- Classic SQLI
+- DMS-specific SQLi
+- Compound SQLI
+
+Question 75:
+Which of the following web application attack inject the special character elements "Carriage Return" and "Line Feed" into the user's input to trick the web server, web application, or user into believing that the current object is terminated and a new object has been initiated?
+Options:
+- CRLF Injection. (Correct)
+- HTML Injection.
+- Log Injection.
+- Server-Side JS Injection.
+
+Question 76:
+John, a system administrator, is learning how to work with new technology: Docker. He will use it to create a network connection between the container interfaces and its parent host interface. Which of the following network drivers is suitable for John?
+Options:
+- Bridge networking.
+- Macvlan networking. (Correct)
+- Host networking.
+- Overlay networking.
+
+Question 77:
+Mark, the network administrator, must allow UDP traffic on the host 10.0.0.3 and Internet traffic in the host 10.0.0.2. In addition to the main task, he needs to allow all FTP traffic to the rest of the network and deny all other traffic. Mark applies his ACL configuration on the router, and everyone has a problem with accessing FTP. In addition, hosts that are allowed access to the Internet cannot connect to it. In accordance with the following configuration, determine what happened on the network?
+Options:
+- The ACL for FTP must be before the ACL 110.
+- The ACL 104 needs to be first because is UDP.
+- The ACL 110 needs to be changed to port 80.
+- The first ACL is denying all TCP traffic, and the router is ignoring the other ACLs. (Correct)
+
+Question 78:
+Which of the following can be designated as "Wireshark for CLI"?
+Options:
+- nessus
+- tcpdump (Correct)
+- ethereal
+- John the Ripper
+
+Question 79:
+What is an automated software testing technique that involves providing invalid, unexpected, or random data as inputs to a computer program?
+Options:
+- Concolic testing
+- Fuzz testing (Correct)
+- Security testing
+- Monkey testing
+
+Question 80:
+Which one of the following Google search operators allows restricting results to those from a specific website?
+Options:
+- [link:]
+- [inurl:]
+- [site:] (Correct)
+- [cache:]
+
+Question 81:
+Based on the following data, you need to calculate the approximate cost of recovery of the system operation per year: The cost of a new hard drive is $300; The chance of a hard drive failure is 1/3; The recovery specialist earns $10/hour; Restore the OS and software to the new hard disk - 10 hours; Restore the database from the last backup to the new hard disk - 4 hours; Assume the EF=1(100%), calculate the SLE, ARO, and ALE.
+Options:
+- $146 (Correct)
+- $440
+- $960
+- $295
+
+Question 82:
+John needs to choose a firewall that can protect against SQL injection attacks. Which of the following types of firewalls is suitable for this task?
+Options:
+- Hardware firewall.
+- Packet firewall.
+- Stateful firewall.
+- Web application firewall. (Correct)
+
+Question 83:
+Which of the following is the type of violation when an unauthorized individual enters a building following an employee through the employee entrance?
+Options:
+- Tailgating. (Correct)
+- Pretexting.
+- Announced.
+- Reverse Social Engineering.
+
+Question 84:
+Which of the following program attack both the boot sector and executable files?
+Options:
+- Polymorphic virus
+- Multipartite Virus (Correct)
+- Macro virus
+- Stealth virus
+
+Question 85:
+The company "Usual company" asked a cybersecurity specialist to check their perimeter email gateway security. To do this, the specialist creates a specially formatted email message: 1. From: employee76@usualcompany.com 2. To: employee34@usualcompany.com 3. Subject: Test message 4. Date: 5/8/2021 11:22. He sends this message over the Internet, and a "Usual company" employee receives it. This means that the gateway of this company doesn't prevent
+Options:
+- Email Harvesting
+- Email Masquerading
+- Email Spoofing (Correct)
+- Email Phishing
+
+Question 86:
+Rajesh, the system administrator analyzed the IDS logs and noticed that when accessing the external router from the administrator's computer to update the router configuration, IDS registered alerts. What type of an alert is this?
+Options:
+- False negative
+- True positve
+- True negative
+- False positive (Correct)
+
+Question 87:
+For the company, an important criterion is the immutability of the financial reports sent by the financial director to the accountant. They need to be sure that the accountant received the reports and it hasn't been changed. How can this be achieved?
+Options:
+- Use a hash algorithm in the document once CFO approved the financial statements. (Correct)
+- Reports can send to the accountant using an exclusive USB for that document.
+- Use a protected excel file.
+- Financial reports can send the financial statements twice, one by email and the other delivered in USB and the accountant can compare both.
+
+Question 88:
+While using your bank's online servicing you notice the following string in the URL bar: http://www.MyPersonal Bank.com/account?id=368940911028389&Damount=10980&Camount=21. You observe that if you modify the Damount & Camount values and submit the request, that data on the web page reflect the changes. Which type of vulnerability is present on this site?
+Options:
+- Web Parameter Tampering (Correct)
+- Cookie Tampering
+- SQL injection
+- XSS Reflection
+
+Question 89:
+Ferdinand installs a virtual communication tower between the two authentic endpoints to mislead the victim. What attack does Ferdinand perform?
+Options:
+- Aspidistra
+- Wi-Jacking
+- Sinkhole
+- aLTEr (Correct)
+
+Question 90:
+Which of the following best describes the "white box testing" methodology?
+Options:
+- The internal operation of a system is completely known to the tester. (Correct)
+- Only the external operation of a system is accessible to the tester.
+- Only the internal operation of a system is known to the tester.
+- The internal operation of a system is only partly accessible to the tester.
+
+Question 91:
+Why is a penetration test considered to be better than a vulnerability scan?
+Options:
+- The tools used by penetration testers tend to have much more comprehensive vulnerability databases.
+- Penetration tests are intended to exploit weaknesses in the architecture of your IT network, while a vulnerability scan does not typically involve active exploitation. (Correct)
+- A penetration test is often performed by an automated tool, while a vulnerability scan requires active engagement.
+- Vulnerability scans only do host discovery and port scanning by default.
+
+Question 92:
+Alex, a cybersecurity specialist, received a task from the head to scan open ports. One of the main conditions was to use the most reliable type of TCP scanning. Which of the following types of scanning should Alex use?
+Options:
+- Half-open Scan.
+- TCP Connect/Full Open Scan. (Correct)
+- Xmas Scan.
+- NULL Scan.
+
+Question 93:
+Which of the following best describes two-factor authentication for a credit card (using a card and pin)?
+Options:
+- Something you have and something you know. (Correct)
+- Something you have and something you are.
+- Something you know and something you are.
+- Something you are and something you remember.
+
+Question 94:
+What means the flag "-oX" in a Nmap scan?
+Options:
+- Output the results in truncated format to the screen.
+- Run a Xmas scan.
+- Output the results in XML format to a file. (Correct)
+- Run an express scan.
+
+Question 95:
+Which of the following characteristics is not true about the Simple Object Access Protocol?
+Options:
+- Only compatible with the application protocol HTTP. (Correct)
+- Allows for any programming model.
+- Exchanges data between web services.
+- Using Extensible Markup Language.
+
+Question 96:
+Which of the following wireless standard has bandwidth up to 54 Mbit/s and signals in a regulated frequency spectrum around 5 GHz?
+Options:
+- 802.11g
+- 802.11i
+- 802.11n
+- 802.11a (Correct)
+
+Question 97:
+Which of the following cipher is based on factoring the product of two large prime numbers?
+Options:
+- SHA-1
+- RSA (Correct)
+- MD5
+- RC5
+
+Question 98:
+Which of the following command will help you launch the Computer Management Console from" Run" windows as a local administrator Windows 7?
+Options:
+- gpedit.msc
+- ncpa.cpl
+- compmgmt.msc (Correct)
+- services.msc
+
+Question 99:
+Which of the following does not apply to IPsec?
+Options:
+- Work at the Data Link Layer (Correct)
+- Encrypts the payloads
+- Provides authentication.
+- Use key exchange.
+
+Question 100:
+According to the Payment Card Industry Data Security Standard, when is it necessary to conduct external and internal penetration testing?
+Options:
+- At least once a year and after any significant upgrade or modification. (Correct)
+- At least twice a year or after any significant upgrade or modification.
+- At least once every three years or after any significant upgrade or modification.
+- At least once every two years and after any significant upgrade or modification.
+
+Question 101:
+What identifies malware by collecting data from protected computers while analyzing it on the provider's infrastructure instead of locally?
+Options:
+- Heuristics-based detection
+- Behavioural-based detection
+- Cloud-based detection (Correct)
+- Real-time protection
+
+Question 102:
+You are configuring the connection of a new employee's laptop to join an 802.11 network. The new laptop has the same hardware and software as the laptops of other employees. You used the wireless packet sniffer and found that it shows that the Wireless Access Point (WAR) is not responding to the association requests being sent by the laptop. What can cause this problem?
+Options:
+- The laptop is configured for the wrong channel.
+- The laptop cannot see the SSID of the wireless network.
+- The WAP does not recognize the la[top's MAC address. (Correct)
+- The laptop is not configured to use DHCP.
+
+Question 103:
+Which of the following is a logical collection of Internet-connected devices such as computers, smartphones or Internet of things (IoT) devices whose security has been breached and control ceded to a third party?
+Options:
+- Spambot
+- Botnet (Correct)
+- Spear Phishing
+- Rootkit
+
+Question 104:
+After several unsuccessful attempts to extract cryptography keys using software methods, Mark is thinking about trying another code-breaking methodology. Which of the following will best suit Mark based on his unsuccessful attempts?
+Options:
+- Frequency Analysis.
+- Trickery and Deceit. (Correct)
+- Brute-Force.
+- One-Time Pad.
+
+Question 105:
+What is meant by a "rubber-hose" attack in cryptography?
+Options:
+- Extraction of cryptographic secrets through coercion or torture. (Correct)
+- A backdoor is placed into a cryptographic algorithm by its creator.
+- Forcing the targeted keystream through a hardware-accelerated device such as an ASIC.
+- Attempting to decrypt ciphertext by making logical assumptions about the contents of the original plain text.
+
+Question 106:
+The firewall prevents packets from entering the organization through certain ports and applications. What does this firewall check?
+Options:
+- Presentation layer headers and the session layer port numbers.
+- Application layer port numbers and the transport layer headers.
+- Application layer headers and transport layer port numbers. (Correct)
+- Network layer headers and the session layer port numbers.
+
+Question 107:
+Which of the following requires establishing national standards for electronic health care transactions and national identifiers for providers, health insurance plans, and employers?
+Options:
+- SOX
+- DMCA
+- HIPAA (Correct)
+- PCI-DSS
+
+Question 108:
+Identify the following attack techniques that is used in to send messages to users without the recipient's consent, for example for guerrilla marketing campaigns?
+Options:
+- Bluejacking (Correct)
+- Bluesnarfing
+- Bluesmacking
+- Bluebugging
+
+Question 109:
+Which of the following layers in loT architecture helps bridge the gap between two endpoints, such as a device and a client, and carries out message routing, message identification, and subscribing?
+Options:
+- Middleware.
+- Access Gateway. (Correct)
+- Edge Technology.
+- Internet.
+
+Question 110:
+Session splicing is an IDS evasion technique that exploits how some IDSs do not reconstruct sessions before performing pattern matching on the data. The idea behind session splicing is to split data between several packets, ensuring that no single packet matches any patterns within an IDS signature. Which tool can be used to perform session splicing attacks?
+Options:
+- Hydra
+- tcpsplice
+- Whisker (Correct)
+- Burp
+
+Question 111:
+Your company has a risk assessment, and according to its results, the risk of a breach in the main company application is 40%. Your cybersecurity department has made changes to the application and requested a re-assessment of the risks. The assessment showed that the risk fell to 12%, with a risk threshold of 20%. Which of the following options would be the best from a business point of view?
+Options:
+- Introduce more controls to bring risk to 0%.
+- Limit the risk.
+- Accept the risk. (Correct)
+- Avoid the risk.
+
+Question 112:
+What actions should you take if you find that the company that hired you is involved with human trafficking?
+Options:
+- Copy the information to removable media and keep it in case you need it.
+- Stop work and contact the proper legal authorities. (Correct)
+- Ignore the information and continue the assessment until the work is done.
+- Confront the customer and ask her about this.
+
+Question 113:
+Viktor, the white hat hacker, conducts a security audit. He gains control over a user account and tries to access another account's sensitive information and files. How can he do this?
+Options:
+- Fingerprinting
+- Shoulder-Surfing
+- Privilege Escalation (Correct)
+- Port Scanning
+
+Question 114:
+The evil hacker Ivan has installed a remote access Trojan on a host. He wants to be sure that when a victim attempts to go to "www.site.com" that the user is directed to a phishing site. Which file should Ivan change in this case?
+Options:
+- Boot.ini
+- Sudoers
+- Hosts (Correct)
+- Networks
+
+Question 115:
+Ivan, an evil hacker, is preparing to attack the network of a financial company. To do this, he wants to collect information about the operating systems used on the company's computers. Which of the following techniques will Ivan use to achieve the desired result?
+Options:
+- UDP Scanning.
+- Banner Grabbing. (Correct)
+- SSDP Scanning.
+- IDLE/IPID Scanning.
+
+Question 116:
+Which of the following option is a security feature on switches leverages the DHCP snooping database to help prevent man-in-the-middle attacks?
+Options:
+- `Spanning tree`
+- Port security
+- DHCP relay
+- DAI (Correct)
+
+Question 117:
+Michael, a technical specialist, discovered that the laptop of one of the employees connecting to a wireless point couldn't access the Internet, but at the same time, it can transfer files locally. He checked the IP address and the default gateway. They are both on 192.168.1.0/24. Which of the following caused the problem?
+Options:
+- The laptop isn't using a private IP address.
+- The laptop and the gateway are not on the same network.
+- The laptop is using an invalid IP address.
+- The gateway is not routing to a public IP address. (Correct)
+
+Question 118:
+You have been assigned the task of defending the company from network sniffing. Which of the following is the best option for this task?
+Options:
+- Restrict Physical Access to Server Rooms hosting Critical Servers.
+- Register all machines MAC Address in a Centralized Database.
+- Using encryption protocols to secure network communications. (Correct)
+- Use Static IP Address.
+
+Question 119:
+Let's assume that you decided to use PKI to protect the email you will send. At what layer of the OSI model will this message be encrypted and decrypted?
+Options:
+- Application layer.
+- Session layer.
+- Transport layer.
+- Presentation layer. (Correct)
+
+Question 120:
+Which of the following UDP ports is usually used by Network Time Protocol (NTP)?
+Options:
+- 19
+- 123 (Correct)
+- 161
+- 177
+
+Question 121:
+Andrew is conducting a penetration test. He is now embarking on sniffing the target network. What is not available for Andrew when sniffing the network?
+Options:
+- Identifying operating systems, services, protocols and devices.
+- Capturing network traffic for further analysis.
+- Collecting unencrypted information about usernames and passwords.
+- Modifying and replaying captured network traffic. (Correct)
+
+Question 122:
+Which of the following methods is best suited to protect confidential information on your laptop which can be stolen while travelling?
+Options:
+- BIOS password.
+- Hidden folders.
+- Full disk encryption. (Correct)
+- Password protected files.
+
+Question 123:
+How works the mechanism of a Boot Sector Virus?
+Options:
+- Moves the MBR to another location on the Random-access memory and copies itself to the original location of the MBR.
+- Moves the MBR to another location on the hard disk and copies itself to the original location of the MBR. (Correct)
+- Overwrites the original MBR and only executes the new virus code.
+- Modifies directory table entries to point to the virus code instead of the actual MBR.
+
+Question 124:
+Which of the following flags will trigger Xmas scan?
+Options:
+- -sP
+- -sA
+- -sV
+- -sX (Correct)
+
+Question 125:
+Rajesh, a system administrator, noticed that some clients of his company were victims of DNS Cache Poisoning. They were redirected to a malicious site when they tried to access Rajesh's company site. What is the best recommendation to deal with such a threat?
+Options:
+- Customer awareness
+- Use a multi-factor authentication
+- Use of security agents on customers' computers.
+- Use Domain Name System Security Extensions (DNSSEC) (Correct)

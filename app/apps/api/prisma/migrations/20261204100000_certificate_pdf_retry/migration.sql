@@ -1,0 +1,2 @@
+ALTER TABLE "Certificate" ADD COLUMN "pdfAttempts" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Certificate" ADD COLUMN "pdfNextAt" TIMESTAMP(3);

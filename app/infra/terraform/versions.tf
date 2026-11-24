@@ -1,0 +1,59 @@
+terraform {
+  required_version = ">= 1.6"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.70"
+    }
+  }
+
+  # Remote state. Create the bucket + lock table first (see README), then run:
+  #   terraform init -backend-config=backend.hcl
+  backend "s3" {}
+}
+
+provider "aws" {
+  region = var.region
+
+  default_tags {
+    tags = {
+      Project     = var.project
+      Environment = var.environment
+      ManagedBy   = "terraform"
+      Owner       = "NandiVex Technologies"
+    }
+  }
+}
+
+# CloudFront certificates must live in us-east-1.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Project     = var.project
+      Environment = var.environment
+      ManagedBy   = "terraform"
+      Owner       = "NandiVex Technologies"
+    }
+  }
+}
+
+data "aws_caller_identity" "current" {}
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+locals {
+  name    = "${var.project}-${var.environment}"
+  azs     = slice(data.aws_availability_zones.available.names, 0, 2)
+  is_prod = var.environment == "production"
+
+  # Production: the platform itself lives at <domain> (parakh.nandivex.in) and its API at api.<domain>.
+  # Other environments use app-<env>.<domain> and api-<env>.<domain>. Certificate checks are a page
+  # of the same web app (/verify/), so they need no hostname of their own.
+  web_hostname = var.domain_name == "" ? "" : (var.environment == "production" ? var.domain_name : "app-${var.environment}.${var.domain_name}")
+  api_hostname = var.domain_name != "" ? "${var.environment == "production" ? "api" : "api-${var.environment}"}.${var.domain_name}" : ""
+}

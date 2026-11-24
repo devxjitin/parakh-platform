@@ -1,0 +1,6 @@
+# Caddy obtains and renews the HTTPS certificate automatically (Let's Encrypt).
+# The DNS A record for {$API_HOST} must point at this server first.
+{$API_HOST} {
+	encode gzip
+	reverse_proxy api:4000
+}

@@ -1,0 +1,8 @@
+services:
+  api:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: '${AWS_REGION}'
+        awslogs-group: '/parakh/${ENVIRONMENT}/api'
+        mode: non-blocking

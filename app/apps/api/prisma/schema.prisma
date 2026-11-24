@@ -1,0 +1,668 @@
+// Parakh database schema. Sprint 1 covers identity; exams, payments etc. arrive in later sprints.
+
+generator client {
+  provider      = "prisma-client-js"
+  // linux-musl-* targets are for the Alpine Docker images (amd64 local, arm64 on the Graviton server).
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  EXAMINER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum OtpPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+  // A student proving their email to join an exam (students have no password).
+  JOIN
+}
+
+// An exam's stored state. "Open", "closed" and "upcoming" are not stored: they follow from the
+// window (see examPhase in the shared package).
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  RESULTS_FINAL
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CREATED
+  CAPTURED
+  FAILED
+  // Refund claimed; the gateway call or the ledger step has not finished. A sweeper completes it.
+  PENDING_REFUND
+  REFUNDED
+}
+
+enum PaymentPurpose {
+  EXAM_CREATION
+  EXAM_JOIN
+  SEAT_PACK
+}
+
+enum PayoutMethod {
+  UPI
+  BANK
+}
+
+enum PayoutStatus {
+  REQUESTED
+  PAID
+  REJECTED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+  GRADED
+  RESULT_PUBLISHED
+}
+
+enum QuestionType {
+  SINGLE
+  MULTI
+  SUBJECTIVE
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  name             String
+  phone            String?
+  passwordHash     String
+  role             Role
+  status           UserStatus @default(ACTIVE)
+  emailVerifiedAt  DateTime?
+  // Which version of the Terms and Privacy Policy the user accepted at sign-up, and when.
+  termsAcceptedAt  DateTime?
+  termsVersion     String?
+  // Set when the user closed their account; the personal details were wiped at that moment.
+  deletedAt        DateTime?
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  examinerProfile ExaminerProfile?
+  otps            EmailOtp[]
+  refreshTokens   RefreshToken[]
+  exams           Exam[]
+  payments        Payment[]
+  enrollments     Enrollment[]
+  attempts        Attempt[]
+  payouts         Payout[]         @relation("PayoutExaminer")
+  seatPacks       SeatPack[]       @relation("SeatSponsor")
+  certificates    Certificate[]
+  practiceAccess  PracticeAccess[]
+  practiceRounds  PracticeRound[]
+
+  @@index([role])
+}
+
+// What happens when a student leaves the exam screen.
+enum StrikePolicy {
+  OFF
+  WARN
+  AUTO_SUBMIT
+}
+
+model Exam {
+  id                 String       @id @default(uuid()) @db.Uuid
+  examinerId         String       @db.Uuid
+  title              String
+  description        String?
+  instructions       String?
+  status             ExamStatus   @default(DRAFT)
+  durationMinutes    Int          @default(60)
+  startsAt           DateTime?
+  endsAt             DateTime?
+  passPercent        Float        @default(40)
+  shuffleQuestions   Boolean      @default(true)
+  shuffleOptions     Boolean      @default(true)
+  // OFF: events are only logged. WARN: strikes are counted and shown. AUTO_SUBMIT: submit at maxStrikes.
+  strikePolicy       StrikePolicy @default(AUTO_SUBMIT)
+  maxStrikes         Int          @default(3)
+  // Certificate logo for this exam (private S3 key). Falls back to the trainer's default logo.
+  logoKey            String?
+  // Created by an admin: NandiVex runs the exam itself, so there is no creation fee and no trainer share.
+  nandivexHosted     Boolean      @default(false)
+  // What a student pays to join, in paise (NandiVex-run exams). 0 = free; null = the platform fee.
+  studentFeePaise    Int?
+  // Trainer-pays mode: the students (emails) whose seats the trainer bought at publish time. Empty = students pay.
+  sponsoredEmails    String[]     @default([])
+  // Certificate settings (layout, colours, wording); null means the defaults.
+  certificate        Json?
+  // The paper plan from the New exam workflow: total questions, plus how many are MCQ and how many subjective.
+  paperPlan          Json?
+  // The AI Paper Builder brief (topics, counts, language...). Only the brief, never the AI's answer.
+  aiBrief            Json?
+  // Share code (e.g. NVX-7K3P9Q), generated when the creation fee is captured.
+  code               String?      @unique
+  publishedAt        DateTime?
+  // Set when the trainer publishes results to students.
+  resultsPublishedAt DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  examiner       User             @relation(fields: [examinerId], references: [id], onDelete: Restrict)
+  questions      Question[]
+  payments       Payment[]
+  enrollments    Enrollment[]
+  attempts       Attempt[]
+  seatPacks      SeatPack[]
+  certificates   Certificate[]
+  practiceAccess PracticeAccess[]
+  practiceRounds PracticeRound[]
+
+  @@index([examinerId, createdAt])
+  @@index([status])
+}
+
+model Question {
+  id             String       @id @default(uuid()) @db.Uuid
+  examId         String       @db.Uuid
+  position       Int
+  type           QuestionType
+  body           String
+  markdown       Boolean      @default(false)
+  imageKey       String?
+  imageAlt       String?
+  // Choice questions only: option texts, and the zero-based indexes of the correct ones.
+  options        String[]
+  correctOptions Int[]
+  marks          Float        @default(4)
+  /// Unused: negative marking was removed. The column stays so no migration is needed.
+  negativeMarks  Float        @default(0)
+  // Multiple-answer only: share the marks when only some correct options are picked.
+  partialCredit  Boolean      @default(false)
+  // Archived settings for questions converted to written answers.
+  coding         Json?
+  explanation    String?
+  // Subjective questions only: marking guidance for the grader.
+  rubric         String?
+  // Bumped on every post-publish correction (text, answer key, dropped).
+  revision       Int          @default(0)
+  // Set when the trainer drops the question: everyone gets its full marks.
+  droppedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId, position])
+}
+
+model ExaminerProfile {
+  userId                  String        @id @db.Uuid
+  orgName                 String?
+  // Trainer's default certificate logo (S3 key); each exam can override it (Sprint 2).
+  logoKey                 String?
+  // Where NandiVex sends the trainer's share. The account number is stored encrypted.
+  payoutMethod            PayoutMethod?
+  upiId                   String?
+  bankAccountName         String?
+  bankAccountNoEnc        String?
+  bankAccountLast4        String?
+  ifsc                    String?
+  payoutDetailsUpdatedAt  DateTime?
+  payoutDetailsVerifiedAt DateTime?
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Failed sign-ins per (email, IP). Locks one pair, so a stranger cannot lock the real owner out
+/// from their own network.
+model LoginFailure {
+  email       String
+  ip          String
+  count       Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@id([email, ip])
+  @@index([updatedAt])
+}
+
+model EmailOtp {
+  id         String     @id @default(uuid()) @db.Uuid
+  userId     String     @db.Uuid
+  purpose    OtpPurpose
+  // HMAC of the code; the code itself is never stored.
+  codeHash   String
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  // Tokens rotated from the same login share a family so reuse can revoke all of them.
+  familyId     String    @db.Uuid
+  tokenHash    String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?   @db.Uuid
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String?  @db.Uuid
+  action    String
+  entity    String?
+  entityId  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+
+model Payment {
+  id                String         @id @default(uuid()) @db.Uuid
+  // Human-friendly receipt number, e.g. PRK-R-000012 (assigned from this sequence).
+  receiptNo         Int            @unique @default(autoincrement())
+  userId            String         @db.Uuid
+  examId            String?        @db.Uuid
+  purpose           PaymentPurpose
+  // Integer paise. GST-inclusive.
+  amountPaise       Int
+  currency          String         @default("INR")
+  provider          String
+  providerOrderId   String         @unique
+  providerPaymentId String?        @unique
+  status            PaymentStatus  @default(CREATED)
+  failureReason     String?
+  // Seats bought in one order (sponsored seats); 1 for everything else.
+  quantity          Int            @default(1)
+  capturedAt        DateTime?
+  refundedAt        DateTime?
+  refundReason      String?
+  refundId          String?
+  // Paid but nothing was delivered (no seat, exam deleted): needs a manual refund.
+  needsRefund       Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  exam          Exam?          @relation(fields: [examId], references: [id], onDelete: SetNull)
+  enrollment    Enrollment?
+  seatPack      SeatPack?
+  refundRequest RefundRequest?
+
+  @@index([userId, createdAt])
+  @@index([examId, purpose, status])
+}
+
+enum RefundRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
+/// A student asking for their exam fee back before they start. One request per payment.
+model RefundRequest {
+  id           String              @id @default(uuid()) @db.Uuid
+  paymentId    String              @unique @db.Uuid
+  userId       String              @db.Uuid
+  reason       String
+  status       RefundRequestStatus @default(REQUESTED)
+  decidedById  String?             @db.Uuid
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime            @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+// One row per gateway webhook event; the unique id makes redelivery harmless.
+model WebhookEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  provider   String
+  eventId    String   @unique
+  type       String
+  receivedAt DateTime @default(now())
+}
+
+// A student's paid seat in an exam. Created when the join fee is captured.
+model Enrollment {
+  id             String    @id @default(uuid()) @db.Uuid
+  examId         String    @db.Uuid
+  studentId      String    @db.Uuid
+  paymentId      String?   @unique @db.Uuid
+  // Set when a sponsored seat paid for this enrollment instead of the student.
+  seatId         String?   @unique @db.Uuid
+  // Set when the "your exam starts soon" email went out, so it is only sent once.
+  reminderSentAt DateTime?
+  // Extra time for this student (accommodation), set by the trainer. Added to the exam duration.
+  extraMinutes   Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Restrict)
+  student User     @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  attempt Attempt?
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+}
+
+// One attempt per enrollment. The deadline is fixed by the server when the attempt starts.
+model Attempt {
+  id                   String        @id @default(uuid()) @db.Uuid
+  enrollmentId         String        @unique @db.Uuid
+  examId               String        @db.Uuid
+  studentId            String        @db.Uuid
+  status               AttemptStatus @default(IN_PROGRESS)
+  startedAt            DateTime      @default(now())
+  deadlineAt           DateTime
+  submittedAt          DateTime?
+  // Why it ended: SUBMITTED_BY_STUDENT, TIME_UP, STRIKES.
+  endReason            String?
+  strikes              Int           @default(0)
+  // Where and on what the attempt was taken. The device id is bound on first use; another
+  // device is refused until the trainer releases it.
+  deviceId             String?
+  startIp              String?
+  lastIp               String?
+  userAgent            String?
+  // This student's own question order (ids) and option order per question (original indexes).
+  questionOrder        Json
+  optionOrders         Json
+  // Filled in when grading finishes (objective answers at submit, subjective by the trainer).
+  score                Float?
+  maxScore             Float?
+  percent              Float?
+  passed               Boolean?
+  gradedAt             DateTime?
+  // The one email with the score, certificate and answer sheet. Sent once per student.
+  resultEmailedAt      DateTime?
+  resultEmailAttempts  Int           @default(0)
+  resultEmailLockUntil DateTime?
+  // Last time the bound device talked to the server. A device silent for 5 minutes can be replaced.
+  lastSeenAt           DateTime?
+  // When the last strike was counted; the conditional update on it keeps strikes from doubling.
+  lastStrikeAt         DateTime?
+
+  enrollment Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  exam       Exam             @relation(fields: [examId], references: [id], onDelete: Restrict)
+  student    User             @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  answers    Answer[]
+  events     ProctorEvent[]
+
+  @@index([examId, status])
+  @@index([studentId])
+  @@index([examId, deviceId])
+}
+
+model Answer {
+  id             String    @id @default(uuid()) @db.Uuid
+  attemptId      String    @db.Uuid
+  questionId     String    @db.Uuid
+  // Choice questions: original option indexes. Subjective: text.
+  selected       Int[]
+  text           String?
+  flagged        Boolean   @default(false)
+  // Marks given (auto for choice questions, by the trainer for subjective) and written feedback.
+  marksAwarded   Float?
+  feedback       String?
+  gradedAt       DateTime?
+  // Archived language and sample-run count for former coding answers.
+  language       String?
+  runs           Int       @default(0)
+  // Highest client sequence number applied; older autosaves that arrive late are ignored.
+  clientSeq      BigInt    @default(0)
+  // Trainer's mark for a choice answer, with the reason. Wins over the automatic mark.
+  marksOverride  Float?
+  overrideReason String?
+  lastRunAt      DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}
+
+model ProctorEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  attemptId String   @db.Uuid
+  type      String
+  // true when this event added a strike
+  strike    Boolean  @default(false)
+  ip        String?
+  deviceId  String?
+  createdAt DateTime @default(now())
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId, createdAt])
+}
+
+// ------------------------------------------------------------------ money (Sprint 8)
+
+// Double-entry ledger. Every transaction (txnId) has entries that add up to exactly zero.
+// Accounts: EXTERNAL (money in/out of the business), PLATFORM (NandiVex), EXAMINER:<id>
+// (owed to a trainer), PAYOUTS (money sent to trainers). Amounts are signed paise.
+model LedgerEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  txnId       String   @db.Uuid
+  account     String
+  amountPaise Int
+  // CREDIT (a payment came in), REFUND (reversal), PAYOUT (paid to a trainer)
+  type        String
+  paymentId   String?  @db.Uuid
+  payoutId    String?  @db.Uuid
+  examId      String?  @db.Uuid
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([account, createdAt])
+  @@index([txnId])
+  @@index([paymentId])
+  @@index([examId])
+}
+
+// A manual payout of a trainer's share: requested by the trainer or created by an admin.
+model Payout {
+  id          String        @id @default(uuid()) @db.Uuid
+  examinerId  String        @db.Uuid
+  amountPaise Int
+  status      PayoutStatus  @default(REQUESTED)
+  method      PayoutMethod?
+  // Masked snapshot of where it was sent, e.g. "name@upi" or "Asha Rao, HDFC0001234 ****6789"
+  destination String?
+  utr         String?
+  note        String?
+  requestedAt DateTime      @default(now())
+  paidAt      DateTime?
+  paidById    String?       @db.Uuid
+  periodFrom  DateTime?
+  periodTo    DateTime?
+
+  examiner User @relation("PayoutExaminer", fields: [examinerId], references: [id], onDelete: Restrict)
+
+  @@index([examinerId, requestedAt])
+  @@index([status])
+}
+
+// Seats a trainer bought for their students. The students join without paying.
+model SeatPack {
+  id        String   @id @default(uuid()) @db.Uuid
+  examId    String   @db.Uuid
+  sponsorId String   @db.Uuid
+  paymentId String   @unique @db.Uuid
+  seats     Int
+  createdAt DateTime @default(now())
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Restrict)
+  sponsor User    @relation("SeatSponsor", fields: [sponsorId], references: [id], onDelete: Restrict)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  items   Seat[]
+
+  @@index([examId])
+}
+
+model Seat {
+  id           String    @id @default(uuid()) @db.Uuid
+  packId       String    @db.Uuid
+  // Opaque identifier retained for historical seat records.
+  token        String    @unique
+  // When set, the seat is reserved for this email.
+  email        String?
+  redeemedById String?   @db.Uuid
+  redeemedAt   DateTime?
+  enrollmentId String?   @unique @db.Uuid
+  createdAt    DateTime  @default(now())
+
+  pack SeatPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([packId])
+  @@index([email])
+}
+
+// ----------------------------------------------------------- certificates (Sprint 9)
+
+enum CertificateStatus {
+  GENERATED
+  APPROVED
+  REJECTED
+  EMAILED
+}
+
+enum CertificateKind {
+  ACHIEVEMENT
+  PARTICIPATION
+  TRAINER
+}
+
+// One per finished attempt. The text on it is copied here so it never changes afterwards.
+model Certificate {
+  id             String            @id @default(uuid()) @db.Uuid
+  // Null for a trainer's certificate (it belongs to the exam, not to one attempt).
+  attemptId      String?           @unique @db.Uuid
+  examId         String            @db.Uuid
+  // The holder: the student, or the trainer for a TRAINER certificate.
+  studentId      String            @db.Uuid
+  serialNo       String            @unique
+  kind           CertificateKind
+  status         CertificateStatus @default(GENERATED)
+  holderName     String
+  examTitle      String
+  orgName        String?
+  scorePercent   Float
+  // TRAINER certificates: how many students took the exam.
+  participants   Int?
+  issuedOn       DateTime
+  // HMAC over the printed facts; the verification page recomputes it.
+  verifyHash     String
+  pdfKey         String?
+  pdfError       String?
+  // Failed renders are retried a few times with a growing wait, then left for an admin.
+  pdfAttempts    Int               @default(0)
+  pdfNextAt      DateTime?
+  approvedById   String?           @db.Uuid
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  rejectReason   String?
+  emailedAt      DateTime?
+  emailAttempts  Int               @default(0)
+  emailNextAt    DateTime?
+  emailError     String?
+  emailMessageId String?
+  emailBouncedAt DateTime?
+  createdAt      DateTime          @default(now())
+
+  exam    Exam @relation(fields: [examId], references: [id], onDelete: Restrict)
+  student User @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([examId, status])
+  @@index([studentId])
+  @@index([status, emailNextAt])
+  @@index([emailMessageId])
+}
+
+// Delivery, bounce and complaint notices from the mail provider (through SNS).
+model EmailEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  snsId     String   @unique
+  kind      String
+  messageId String
+  recipient String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+}
+
+// A student who took an exam may practise its questions once the exam is over. Created the first
+// time they open the set. Practice has its own tables and never changes an official score.
+model PracticeAccess {
+  id         String    @id @default(uuid()) @db.Uuid
+  studentId  String    @db.Uuid
+  examId     String    @db.Uuid
+  unlockedAt DateTime  @default(now())
+  // The code emailed to the student once the exam closed (PRC-XXXXXX); it opens this practice set.
+  code       String?   @unique
+  emailedAt  DateTime?
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam    Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examId])
+}
+
+// One finished practice round (choice questions are scored).
+model PracticeRound {
+  id          String   @id @default(uuid()) @db.Uuid
+  studentId   String   @db.Uuid
+  examId      String   @db.Uuid
+  score       Float
+  maxScore    Float
+  percent     Float
+  answered    Int
+  scoredCount Int
+  results     Json
+  createdAt   DateTime @default(now())
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam    Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, examId, createdAt])
+}
+
+// Prices, the trainer's share and other values NandiVex can change without a release.
+// One row per key; the value is JSON. Past payments keep the amounts they were charged.
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?  @db.Uuid
+}

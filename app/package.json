@@ -1,0 +1,47 @@
+{
+  "name": "parakh",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Parakh by NandiVex Technologies - online assessment and certification platform",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/question-parser",
+    "apps/api",
+    "apps/web",
+    "apps/e2e"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:api": "npm run dev -w @parakh/api",
+    "dev:web": "npm run dev -w @parakh/web",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d --remove-orphans",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "@nestjs/platform-express": {
+      "body-parser": "^1.20.9",
+      "multer": "^2.5.0"
+    },
+    "@prisma/config": {
+      "effect": "^3.22.5"
+    },
+    "express@4": {
+      "body-parser": "^1.20.9",
+      "qs": "^6.17.1"
+    },
+    "next": {
+      "postcss": "^8.5.33"
+    }
+  }
+}

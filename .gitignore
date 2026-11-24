@@ -1,0 +1,28 @@
+# dependencies and builds
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+test-results/
+playwright-report/
+
+# secrets and local settings
+.env
+.env.*
+!.env.example
+.claude/
+
+# infra state
+.terraform/
+*.tfstate*
+secret.auto.tfvars
+backend.hcl
+
+# private working notes
+track.md
+PRODUCTION_AUDIT.md
+
+*.log
+.DS_Store

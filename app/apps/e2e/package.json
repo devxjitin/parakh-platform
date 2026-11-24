@@ -1,0 +1,15 @@
+{
+  "name": "@parakh/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright smoke tests: the real web app against the real API and a database. Run with `npm run e2e`; kept out of `npm test` because it needs a browser.",
+  "scripts": {
+    "e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.3"
+  }
+}

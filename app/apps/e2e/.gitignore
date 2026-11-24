@@ -1,0 +1,4 @@
+.api.log
+test-results/
+playwright-report/
+.db-url

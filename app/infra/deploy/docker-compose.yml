@@ -1,0 +1,26 @@
+# Runs on the EC2 host in /opt/parakh (started by deploy.sh).
+# Variables come from /opt/parakh/.deploy.env, written by deploy.sh.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      API_HOST: ${API_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+
+  api:
+    image: ${ECR_REGISTRY}/parakh-${ENVIRONMENT}-api:${IMAGE_TAG}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '127.0.0.1:4000:4000'
+
+volumes:
+  caddy_data:
