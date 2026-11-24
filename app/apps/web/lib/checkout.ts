@@ -50,6 +50,13 @@ export async function runCheckout(
     return { result: await verify(done), simulated: true };
   }
 
+  // Payment Link flow: pay on Razorpay's own page, which sends the payer back to /payment-return/.
+  if (order.paymentUrl) {
+    window.location.assign(order.paymentUrl);
+    // The page is leaving; nothing more happens here.
+    return new Promise<CheckoutOutcome>(() => {});
+  }
+
   if (!(await loadCheckoutScript()) || !window.Razorpay) {
     throw new Error('Could not load the payment window. Check your connection and try again.');
   }

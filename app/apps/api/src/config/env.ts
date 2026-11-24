@@ -26,6 +26,9 @@ const schema = z.object({
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  // How the payer pays: 'checkout' opens Razorpay inside our page; 'link' sends them to a hosted
+  // Razorpay Payment Link page (works before Razorpay has approved our website for Checkout).
+  PAYMENT_FLOW: z.enum(['checkout', 'link']).default('checkout'),
   // The public address printed on certificates (QR code and "Verify at" line) and in emails.
   // Defaults to WEB_ORIGIN. Certificates outlive any one environment, so staging can point at
   // the production address too.

@@ -8,6 +8,25 @@ export interface GatewayOrder {
   orderId: string;
 }
 
+/** A Razorpay Payment Link: a hosted payment page, used while Checkout is not allowed on our site. */
+export interface GatewayLink {
+  /** plink_... id; stored as the payment's providerOrderId. */
+  linkId: string;
+  /** The page the payer opens (rzp.io/...). */
+  shortUrl: string;
+}
+
+export interface CreateLinkInput {
+  amountPaise: number;
+  currency: string;
+  /** Our unique reference, shown back to us in the callback and the webhook. */
+  referenceId: string;
+  description: string;
+  customer: { name: string; email: string };
+  /** Where Razorpay sends the payer after paying. */
+  callbackUrl: string;
+}
+
 /** A gateway webhook reduced to what we act on. */
 export interface WebhookInfo {
   eventId: string;
@@ -50,6 +69,18 @@ export interface PaymentProvider {
     currency: string;
     receipt: string;
   }): Promise<GatewayOrder>;
+  /** Creates a hosted Payment Link page for one payment. */
+  createPaymentLink(input: CreateLinkInput): Promise<GatewayLink>;
+  /** An existing Payment Link's page and status (created, paid, expired, cancelled...). */
+  getPaymentLink(linkId: string): Promise<{ shortUrl: string; status: string } | null>;
+  /** Checks the signature Razorpay adds when it sends the payer back from a Payment Link. */
+  verifyLinkSignature(input: {
+    linkId: string;
+    referenceId: string;
+    status: string;
+    paymentId: string;
+    signature: string;
+  }): boolean;
   /** Checks the signature the browser got back from Checkout. */
   verifyCheckoutSignature(orderId: string, paymentId: string, signature: string): boolean;
   /** Checks the webhook signature over the exact raw request body. */
@@ -75,14 +106,36 @@ export function safeEqualHex(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
+/** The string Razorpay signs when it sends the payer back from a Payment Link. */
+const linkPayload = (i: {
+  linkId: string;
+  referenceId: string;
+  status: string;
+  paymentId: string;
+}) => `${i.linkId}|${i.referenceId}|${i.status}|${i.paymentId}`;
+
 /** Razorpay-shaped webhook payloads (the fake provider uses the same shape). */
 function parseRazorpayWebhook(body: unknown, eventIdHeader: string | undefined): WebhookInfo {
   const b = body as {
     event?: string;
-    payload?: { payment?: { entity?: Record<string, unknown> } };
+    payload?: {
+      payment?: { entity?: Record<string, unknown> };
+      payment_link?: { entity?: Record<string, unknown> };
+    };
   };
   const eventId = eventIdHeader ?? '';
   const p = b?.payload?.payment?.entity;
+  // A paid Payment Link: our payment is keyed by the link id, not by the order Razorpay made for it.
+  if (b?.event === 'payment_link.paid') {
+    const link = b?.payload?.payment_link?.entity;
+    return {
+      eventId,
+      type: 'captured',
+      orderId: typeof link?.id === 'string' ? link.id : undefined,
+      paymentId: typeof p?.id === 'string' ? p.id : undefined,
+      amountPaise: typeof p?.amount === 'number' ? p.amount : undefined,
+    };
+  }
   const base = {
     eventId,
     orderId: typeof p?.order_id === 'string' ? p.order_id : undefined,
@@ -118,6 +171,35 @@ export class FakePaymentProvider implements PaymentProvider {
 
   verifyCheckoutSignature(orderId: string, paymentId: string, signature: string): boolean {
     return safeEqualHex(FakePaymentProvider.sign(orderId, paymentId), signature);
+  }
+
+  private readonly links = new Map<string, string>();
+
+  async createPaymentLink(): Promise<GatewayLink> {
+    const linkId = `plink_fake${randomUUID().replace(/-/g, '').slice(0, 10)}`;
+    const shortUrl = `https://rzp.io/fake/${linkId}`;
+    this.links.set(linkId, shortUrl);
+    return { linkId, shortUrl };
+  }
+
+  async getPaymentLink(linkId: string) {
+    const shortUrl = this.links.get(linkId);
+    return shortUrl ? { shortUrl, status: 'created' } : null;
+  }
+
+  /** What "the gateway" would sign when sending the payer back from a link. */
+  static signLink(i: { linkId: string; referenceId: string; status: string; paymentId: string }) {
+    return hmac(FakePaymentProvider.SECRET, linkPayload(i));
+  }
+
+  verifyLinkSignature(i: {
+    linkId: string;
+    referenceId: string;
+    status: string;
+    paymentId: string;
+    signature: string;
+  }): boolean {
+    return safeEqualHex(FakePaymentProvider.signLink(i), i.signature);
   }
 
   static signWebhook(rawBody: Buffer | string): string {
@@ -190,6 +272,57 @@ export class RazorpayProvider implements PaymentProvider {
 
   verifyCheckoutSignature(orderId: string, paymentId: string, signature: string): boolean {
     return safeEqualHex(hmac(this.keySecret, `${orderId}|${paymentId}`), signature);
+  }
+
+  async createPaymentLink(input: CreateLinkInput): Promise<GatewayLink> {
+    const res = await fetch('https://api.razorpay.com/v1/payment_links', {
+      method: 'POST',
+      signal: AbortSignal.timeout(RAZORPAY_TIMEOUT_MS),
+      headers: { 'Content-Type': 'application/json', Authorization: this.authHeader },
+      body: JSON.stringify({
+        amount: input.amountPaise,
+        currency: input.currency,
+        accept_partial: false,
+        reference_id: input.referenceId.slice(0, 40),
+        description: input.description.slice(0, 2048),
+        customer: { name: input.customer.name, email: input.customer.email },
+        // We send the payer there ourselves; no Razorpay SMS or email.
+        notify: { sms: false, email: false },
+        reminder_enable: false,
+        callback_url: input.callbackUrl,
+        callback_method: 'get',
+        // A day is plenty to finish paying; a new link is made after that.
+        expire_by: Math.floor(Date.now() / 1000) + 24 * 3600,
+      }),
+    });
+    if (!res.ok) throw new Error(`Razorpay payment link creation failed with status ${res.status}`);
+    const data = (await res.json()) as { id?: string; short_url?: string };
+    if (!data.id || !data.short_url) throw new Error('Razorpay returned no payment link');
+    return { linkId: data.id, shortUrl: data.short_url };
+  }
+
+  async getPaymentLink(linkId: string): Promise<{ shortUrl: string; status: string } | null> {
+    const res = await fetch(
+      `https://api.razorpay.com/v1/payment_links/${encodeURIComponent(linkId)}`,
+      {
+        headers: { Authorization: this.authHeader },
+        signal: AbortSignal.timeout(RAZORPAY_TIMEOUT_MS),
+      },
+    );
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Razorpay payment link lookup failed with status ${res.status}`);
+    const data = (await res.json()) as { short_url?: string; status?: string };
+    return data.short_url && data.status ? { shortUrl: data.short_url, status: data.status } : null;
+  }
+
+  verifyLinkSignature(i: {
+    linkId: string;
+    referenceId: string;
+    status: string;
+    paymentId: string;
+    signature: string;
+  }): boolean {
+    return safeEqualHex(hmac(this.keySecret, linkPayload(i)), i.signature);
   }
 
   verifyWebhookSignature(rawBody: Buffer, signature: string | undefined): boolean {
