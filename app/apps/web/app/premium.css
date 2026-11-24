@@ -7117,3 +7117,39 @@ body:has(.app) > .site-footer {
 .admin-table .sub-table .code-chip {
   margin: 0 0 0 8px;
 }
+
+/* Sidebar: the menu scrolls on short screens; the footer (legal links) always stays visible. */
+.sidebar {
+  overflow: hidden;
+}
+.sidebar > .nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong, #d1d5db) transparent;
+  margin-right: -6px;
+  padding-right: 6px;
+}
+.sidebar > .sidebar-foot {
+  flex: none;
+}
+.sidebar > .sidebar-head {
+  flex: none;
+}
+.nav-item {
+  padding-block: 7px;
+}
+.nav-label {
+  padding-top: 10px;
+}
+@media (max-height: 860px) {
+  .nav-label {
+    padding-top: 8px;
+    padding-bottom: 4px;
+  }
+  .foot-copy {
+    display: none;
+  }
+}
