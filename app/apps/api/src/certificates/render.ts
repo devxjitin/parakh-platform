@@ -8,6 +8,7 @@ import {
   type CertKind,
 } from '@parakh/shared';
 import { NANDIVEX_LOGO_BASE64 } from './nandivex-logo';
+import { PARAKH_LOGO_BASE64 } from './parakh-logo';
 import { CERT_SIGNATURE_BASE64 } from './signature';
 
 export interface CertificateFacts {
@@ -114,14 +115,14 @@ const longDate = (d: Date) =>
   });
 
 /**
- * Draws one certificate as an A4 landscape PDF: the trainer's logo and the NandiVex logo, the
+ * Draws one certificate as an A4 landscape PDF: the trainer's logo plus the Parakh and NandiVex logos, the
  * holder, the exam, a signature line, the serial number and a QR code that opens the public
  * verification page.
  */
 export async function renderCertificate(input: {
   facts: CertificateFacts;
   trainerLogo: Buffer | null;
-  /** A NandiVex-run exam: only the NandiVex logo, centred at the top. */
+  /** A NandiVex-run exam: no trainer logo, the Parakh and NandiVex logos centred at the top. */
   nandivexOnly?: boolean;
 }): Promise<Buffer> {
   const { facts } = input;
@@ -137,7 +138,8 @@ export async function renderCertificate(input: {
   // One fixed design for every certificate. The trainer only chooses the logo.
   const accent = hexToRgb(CERT_ACCENT_HEX);
 
-  const nandivex = await embedImage(doc, Buffer.from(NANDIVEX_LOGO_BASE64, 'base64'));
+  const parakhLogo = await embedImage(doc, Buffer.from(PARAKH_LOGO_BASE64, 'base64'));
+  const nandivexLogo = await embedImage(doc, Buffer.from(NANDIVEX_LOGO_BASE64, 'base64'));
   const trainer = input.nandivexOnly ? null : await embedImage(doc, input.trainerLogo);
   const signature = await embedImage(
     doc,
@@ -195,16 +197,31 @@ export async function renderCertificate(input: {
   page.drawSvgPath('M 0 0 L -104 0 L 0 -104 Z', { x: W, y: 0, color: accent });
   page.drawSvgPath('M -104 0 L -118 0 L 0 -118 L 0 -104 Z', { x: W, y: 0, color: ORANGE });
 
-  // ---- logos: trainer on the left, NandiVex on the right. With no trainer logo (or a NandiVex-run
-  // exam) the NandiVex logo sits alone at the top centre.
-  const logoY = H - 112;
-  if (!trainer) {
-    if (nandivex) drawImageFit(page, nandivex, { x: cx - 80, y: logoY, w: 160, h: 66 }, 'center');
-  } else {
-    drawImageFit(page, trainer, { x: safeLeft + 40, y: logoY, w: 130, h: 66 }, 'left');
-    if (nandivex)
-      drawImageFit(page, nandivex, { x: safeRight - 40 - 130, y: logoY, w: 130, h: 66 }, 'right');
-  }
+  // ---- logos: one centred row with a thin divider between each. The trainer's logo (when there is
+  // one) comes first, then the full Parakh logo, then the full NandiVex Technologies logo. A
+  // NandiVex-run exam has no trainer logo, so it is just Parakh | NandiVex.
+  const logoY = H - 118;
+  const logoH = 72;
+  const gap = 40;
+  const row: { img: PDFImage; w: number }[] = [];
+  if (trainer) row.push({ img: trainer, w: 130 });
+  if (parakhLogo) row.push({ img: parakhLogo, w: 176 });
+  if (nandivexLogo) row.push({ img: nandivexLogo, w: 180 });
+  const rowWidth = row.reduce((sum, l) => sum + l.w, 0) + gap * Math.max(0, row.length - 1);
+  let logoX = cx - rowWidth / 2;
+  row.forEach((l, i) => {
+    drawImageFit(page, l.img, { x: logoX, y: logoY, w: l.w, h: logoH }, 'center');
+    logoX += l.w;
+    if (i < row.length - 1) {
+      page.drawLine({
+        start: { x: logoX + gap / 2, y: logoY + 6 },
+        end: { x: logoX + gap / 2, y: logoY + logoH - 6 },
+        thickness: 0.8,
+        color: rgb(0.82, 0.8, 0.9),
+      });
+      logoX += gap;
+    }
+  });
 
   // ---- title: CERTIFICATE / OF ACHIEVEMENT
   const subtitle = safe(

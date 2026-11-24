@@ -6,22 +6,27 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { Icon, type IconName } from './icons';
 
-/** Brand mark + wordmark. */
+/** Brand lockup (shield + "arakh" + tagline); the icon alone shows when the sidebar is collapsed. */
 export function Brand({ compact, light }: { compact?: boolean; light?: boolean }) {
   return (
-    <Link href="/" className={`brand${light ? ' brand-light' : ''}`}>
-      <span className="brand-mark">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/nandivex-logo.png" alt="NandiVex Technologies" width={34} height={34} />
-      </span>
-      {!compact && (
-        <span className="brand-text">
-          <b>
-            Par<span>akh</span>
-          </b>
-          <small>NandiVex Technologies</small>
-        </span>
-      )}
+    <Link
+      href="/"
+      className={`brand${light ? ' brand-light' : ''}${compact ? ' brand-compact' : ''}`}
+      aria-label="Parakh by NandiVex Technologies"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="brand-logo"
+        src={light ? '/parakh-logo-white.png' : '/parakh-logo.png'}
+        alt="Parakh by NandiVex Technologies"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="brand-icon"
+        src={light ? '/parakh-icon-mono-white.png' : '/parakh-icon-mono.png'}
+        alt=""
+        aria-hidden="true"
+      />
     </Link>
   );
 }

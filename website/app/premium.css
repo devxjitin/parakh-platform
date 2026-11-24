@@ -2991,3 +2991,32 @@ body > .site-footer {
 .lp { overflow-x: clip; }
 .lp-verify > *, .cert-check, .cert-check-form, .cc-field { min-width: 0; }
 .cc-box input { width: 100%; }
+
+/* Brand lockup image (shield + arakh + tagline). The icon alone shows only when collapsed. */
+.brand {
+  gap: 0;
+}
+.brand-logo {
+  display: block;
+  height: 42px;
+  width: auto;
+}
+.brand-icon {
+  display: none;
+  height: 38px;
+  width: auto;
+}
+.sidebar-head .brand-logo {
+  height: 54px;
+}
+.brand-light .brand-logo {
+  height: 52px;
+}
+.brand-compact .brand-logo,
+.app-collapsed .brand-logo {
+  display: none;
+}
+.brand-compact .brand-icon,
+.app-collapsed .brand-icon {
+  display: block;
+}

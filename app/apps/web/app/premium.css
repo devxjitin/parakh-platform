@@ -6184,7 +6184,7 @@ body:has(.app) > .site-footer {
 .pub-done-mark {
   flex: none;
   width: 48px;
-  height: 48px;
+  height: 54px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -6420,7 +6420,7 @@ body:has(.app) > .site-footer {
 .gw-avatar {
   flex: none;
   width: 48px;
-  height: 48px;
+  height: 54px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -7199,4 +7199,33 @@ body:has(.app) > .site-footer {
 /* The sidebar menu keeps its own slimmer bar. */
 .sidebar > .nav::-webkit-scrollbar {
   width: 8px;
+}
+
+/* Brand lockup image (shield + arakh + tagline). The icon alone shows only when collapsed. */
+.brand {
+  gap: 0;
+}
+.brand-logo {
+  display: block;
+  height: 42px;
+  width: auto;
+}
+.brand-icon {
+  display: none;
+  height: 38px;
+  width: auto;
+}
+.sidebar-head .brand-logo {
+  height: 54px;
+}
+.brand-light .brand-logo {
+  height: 52px;
+}
+.brand-compact .brand-logo,
+.app-collapsed .brand-logo {
+  display: none;
+}
+.brand-compact .brand-icon,
+.app-collapsed .brand-icon {
+  display: block;
 }
