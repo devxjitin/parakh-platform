@@ -197,43 +197,31 @@ export async function renderCertificate(input: {
   page.drawSvgPath('M 0 0 L -104 0 L 0 -104 Z', { x: W, y: 0, color: accent });
   page.drawSvgPath('M -104 0 L -118 0 L 0 -118 L 0 -104 Z', { x: W, y: 0, color: ORANGE });
 
-  // ---- logos: the full Parakh logo and the full NandiVex Technologies logo always show. With a
-  // trainer logo: trainer left, Parakh centre, NandiVex right. Without one (or for a NandiVex-run
-  // exam) Parakh and NandiVex sit side by side, centred, with a thin divider.
+  // ---- logos: one centred row with a thin divider between each. The trainer's logo (when there is
+  // one) comes first, then the full Parakh logo, then the full NandiVex Technologies logo. A
+  // NandiVex-run exam has no trainer logo, so it is just Parakh | NandiVex.
   const logoY = H - 118;
   const logoH = 72;
-  if (!trainer) {
-    const parakhW = 176;
-    const nandivexW = 180;
-    const gap = 40;
-    const x0 = cx - (parakhW + gap + nandivexW) / 2;
-    if (parakhLogo)
-      drawImageFit(page, parakhLogo, { x: x0, y: logoY, w: parakhW, h: logoH }, 'center');
-    page.drawLine({
-      start: { x: x0 + parakhW + gap / 2, y: logoY + 6 },
-      end: { x: x0 + parakhW + gap / 2, y: logoY + logoH - 6 },
-      thickness: 0.8,
-      color: rgb(0.82, 0.8, 0.9),
-    });
-    if (nandivexLogo)
-      drawImageFit(
-        page,
-        nandivexLogo,
-        { x: x0 + parakhW + gap, y: logoY, w: nandivexW, h: logoH },
-        'center',
-      );
-  } else {
-    drawImageFit(page, trainer, { x: safeLeft + 40, y: logoY, w: 130, h: logoH }, 'left');
-    if (parakhLogo)
-      drawImageFit(page, parakhLogo, { x: cx - 85, y: logoY, w: 170, h: logoH }, 'center');
-    if (nandivexLogo)
-      drawImageFit(
-        page,
-        nandivexLogo,
-        { x: safeRight - 40 - 140, y: logoY, w: 140, h: logoH },
-        'right',
-      );
-  }
+  const gap = 40;
+  const row: { img: PDFImage; w: number }[] = [];
+  if (trainer) row.push({ img: trainer, w: 130 });
+  if (parakhLogo) row.push({ img: parakhLogo, w: 176 });
+  if (nandivexLogo) row.push({ img: nandivexLogo, w: 180 });
+  const rowWidth = row.reduce((sum, l) => sum + l.w, 0) + gap * Math.max(0, row.length - 1);
+  let logoX = cx - rowWidth / 2;
+  row.forEach((l, i) => {
+    drawImageFit(page, l.img, { x: logoX, y: logoY, w: l.w, h: logoH }, 'center');
+    logoX += l.w;
+    if (i < row.length - 1) {
+      page.drawLine({
+        start: { x: logoX + gap / 2, y: logoY + 6 },
+        end: { x: logoX + gap / 2, y: logoY + logoH - 6 },
+        thickness: 0.8,
+        color: rgb(0.82, 0.8, 0.9),
+      });
+      logoX += gap;
+    }
+  });
 
   // ---- title: CERTIFICATE / OF ACHIEVEMENT
   const subtitle = safe(
