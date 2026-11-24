@@ -67,7 +67,7 @@ const TRAINER_STEPS = [
   },
   {
     title: 'Grade and certify',
-    text: 'Mark written answers, publish results and approve the certificates.',
+    text: 'Mark written answers, publish results and approve the certificates. Your 50% share of the student fees becomes payable once results are published.',
   },
 ];
 
@@ -112,7 +112,8 @@ export default function HomePage() {
               Plan a paper, add questions by hand, paste or with AI, and run a proctored exam that
               grades itself. Every certificate carries a serial number and a QR code anyone can
               verify. Trainers publish an exam for {formatInr(PRICING.EXAM_CREATION_PAISE)}.
-              Students join with an exam code for {formatInr(PRICING.EXAM_JOIN_PAISE)}.
+              Students join with an exam code for {formatInr(PRICING.EXAM_JOIN_PAISE)}, and you
+              keep {PRICING.EXAMINER_SHARE_PERCENT}% of every student fee.
             </p>
             <div className="lp-cta" style={{ ['--d' as string]: '240ms' }}>
               <a className="btn btn-light btn-lg btn-link" href={appUrl('/register/')}>
@@ -411,7 +412,10 @@ export default function HomePage() {
               <div className="lp-price-amt">
                 {formatInr(PRICING.EXAM_CREATION_PAISE)} <small>per exam</small>
               </div>
-              <p className="muted">Publish an exam and share its code with your students.</p>
+              <p className="muted">
+                Publish an exam and share its code with your students. You earn{' '}
+                {PRICING.EXAMINER_SHARE_PERCENT}% of each student&apos;s exam fee.
+              </p>
               <ul>
                 <li>
                   <Icon name="check" size={16} /> Single, multiple-choice and written questions
@@ -423,7 +427,8 @@ export default function HomePage() {
                   <Icon name="check" size={16} /> Grading, results and certificates
                 </li>
                 <li>
-                  <Icon name="check" size={16} /> Earnings and payouts dashboard
+                  <Icon name="check" size={16} /> {PRICING.EXAMINER_SHARE_PERCENT}% of every student
+                  fee, with an earnings and payouts dashboard
                 </li>
               </ul>
               <a className="btn btn-secondary btn-link" href={appUrl('/register/')}>
