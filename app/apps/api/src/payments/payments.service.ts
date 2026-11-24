@@ -20,8 +20,10 @@ import {
   type PublishOrderDto,
   type PublishOrderInput,
   type PublishResultDto,
+  type VerifyLinkInput,
   type VerifyPaymentInput,
 } from '@parakh/shared';
+import { ENV, Env } from '../config/env';
 import { computeJoinState, examJoinFee, normalizeCode } from '../enrollments/join-state';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../common/decorators';
@@ -61,6 +63,7 @@ export class PaymentsService {
     private readonly settings: SettingsService,
     private readonly certificates: CertificatesService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
+    @Inject(ENV) private readonly env: Env,
   ) {
     if (provider.name === 'fake') {
       this.logger.warn(
@@ -111,14 +114,18 @@ export class PaymentsService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    let orderId = existing?.providerOrderId;
-    if (!orderId) {
-      const order = await this.provider.createOrder({
-        amountPaise: totalPaise,
-        currency: PRICING.CURRENCY,
-        receipt: `exam_${exam.id.slice(0, 8)}_${Date.now().toString(36)}`,
-      });
-      orderId = order.orderId;
+    const description = (
+      emails.length
+        ? `Publish exam and ${emails.length} student seat${emails.length === 1 ? '' : 's'}: ${exam.title}`
+        : `Publish exam: ${exam.title}`
+    ).slice(0, 250);
+    const opened = await this.openGatewayPayment(user, existing?.providerOrderId ?? null, {
+      amountPaise: totalPaise,
+      receipt: `exam_${exam.id.slice(0, 8)}_${Date.now().toString(36)}`,
+      description,
+    });
+    const orderId = opened.orderId;
+    if (opened.isNew) {
       await this.prisma.payment.create({
         data: {
           userId: user.id,
@@ -144,10 +151,8 @@ export class PaymentsService {
       amountPaise: totalPaise,
       currency: PRICING.CURRENCY,
       keyId: this.provider.publicKeyId,
-      description: (emails.length
-        ? `Publish exam and ${emails.length} student seat${emails.length === 1 ? '' : 's'}: ${exam.title}`
-        : `Publish exam: ${exam.title}`
-      ).slice(0, 250),
+      description,
+      ...(opened.paymentUrl ? { paymentUrl: opened.paymentUrl } : {}),
     };
   }
 
@@ -211,7 +216,80 @@ export class PaymentsService {
     return { id: exam.id, status: 'PUBLISHED' as const, code };
   }
 
+  /**
+   * Reuses the unpaid gateway payment when it still fits the current payment flow, or opens a new
+   * one: a Checkout order, or a hosted Payment Link page when PAYMENT_FLOW=link.
+   */
+  private async openGatewayPayment(
+    user: AuthUser,
+    existingId: string | null,
+    input: { amountPaise: number; receipt: string; description: string },
+  ): Promise<{ orderId: string; paymentUrl?: string; isNew: boolean }> {
+    const useLink = this.env.PAYMENT_FLOW === 'link';
+    if (existingId && existingId.startsWith('plink_') === useLink) {
+      if (!useLink) return { orderId: existingId, isNew: false };
+      // An expired or cancelled link cannot be paid any more: make a fresh one.
+      const link = await this.provider.getPaymentLink(existingId);
+      if (link?.status === 'created') {
+        return { orderId: existingId, paymentUrl: link.shortUrl, isNew: false };
+      }
+    }
+    if (!useLink) {
+      const order = await this.provider.createOrder({
+        amountPaise: input.amountPaise,
+        currency: PRICING.CURRENCY,
+        receipt: input.receipt,
+      });
+      return { orderId: order.orderId, isNew: true };
+    }
+    const payer = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, email: true },
+    });
+    const webBase = this.env.WEB_ORIGIN.split(',')[0].trim().replace(/\/+$/, '');
+    const link = await this.provider.createPaymentLink({
+      amountPaise: input.amountPaise,
+      currency: PRICING.CURRENCY,
+      referenceId: input.receipt,
+      description: input.description,
+      customer: { name: payer?.name ?? user.email, email: payer?.email ?? user.email },
+      callbackUrl: `${webBase}/payment-return/`,
+    });
+    return { orderId: link.linkId, paymentUrl: link.shortUrl, isNew: true };
+  }
+
   // --------------------------------------------------------------- verify
+
+  /**
+   * Called by the browser when Razorpay sends the payer back from a Payment Link page. The
+   * signature proves the link was paid; the result also says where the app should go next.
+   */
+  async verifyLink(user: AuthUser, input: VerifyLinkInput): Promise<PublishResultDto> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { providerOrderId: input.linkId },
+    });
+    if (!payment || payment.userId !== user.id) throw new NotFoundException('Payment not found');
+    if (input.status !== 'paid' || !this.provider.verifyLinkSignature(input)) {
+      await this.audit.log({
+        actorId: user.id,
+        action: 'payment.verify.failed',
+        entity: 'Payment',
+        entityId: payment.id,
+      });
+      throw new BadRequestException('Payment verification failed');
+    }
+    if (payment.status === 'REFUNDED') throw new ConflictException('This payment was refunded');
+    const done = await this.capture(input.linkId, input.paymentId, undefined, 'link');
+    const result = await this.resultFor(done);
+    const exam = done?.examId
+      ? await this.prisma.exam.findUnique({ where: { id: done.examId }, select: { code: true } })
+      : null;
+    result.next =
+      done?.purpose === 'EXAM_JOIN' && exam?.code
+        ? `/join/?code=${encodeURIComponent(exam.code)}`
+        : `/exams/edit/?id=${encodeURIComponent(result.exam.id)}`;
+    return result;
+  }
 
   /** Called by the browser after Checkout. The signature proves the gateway captured the payment. */
   async verify(user: AuthUser, input: VerifyPaymentInput): Promise<PublishResultDto> {
@@ -230,6 +308,13 @@ export class PaymentsService {
     }
     if (payment.status === 'REFUNDED') throw new ConflictException('This payment was refunded');
     const done = await this.capture(input.orderId, input.paymentId, undefined, 'checkout');
+    return this.resultFor(done);
+  }
+
+  /** What the browser gets back once a payment is confirmed: the exam, the seat and the receipt. */
+  private async resultFor(
+    done: Awaited<ReturnType<PaymentsService['capture']>>,
+  ): Promise<PublishResultDto> {
     if (!done || done.status !== 'CAPTURED') {
       throw new BadRequestException('Payment could not be confirmed');
     }
@@ -520,14 +605,14 @@ export class PaymentsService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    let orderId = existing?.providerOrderId;
-    if (!orderId) {
-      const order = await this.provider.createOrder({
-        amountPaise: feePaise,
-        currency: PRICING.CURRENCY,
-        receipt: `join_${exam.id.slice(0, 8)}_${Date.now().toString(36)}`,
-      });
-      orderId = order.orderId;
+    const description = `Join exam: ${exam.title}`.slice(0, 250);
+    const opened = await this.openGatewayPayment(user, existing?.providerOrderId ?? null, {
+      amountPaise: feePaise,
+      receipt: `join_${exam.id.slice(0, 8)}_${Date.now().toString(36)}`,
+      description,
+    });
+    const orderId = opened.orderId;
+    if (opened.isNew) {
       await this.prisma.payment.create({
         data: {
           userId: user.id,
@@ -552,7 +637,8 @@ export class PaymentsService {
       amountPaise: feePaise,
       currency: PRICING.CURRENCY,
       keyId: this.provider.publicKeyId,
-      description: `Join exam: ${exam.title}`.slice(0, 250),
+      description,
+      ...(opened.paymentUrl ? { paymentUrl: opened.paymentUrl } : {}),
     };
   }
 

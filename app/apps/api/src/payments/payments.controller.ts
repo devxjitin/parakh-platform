@@ -16,10 +16,12 @@ import {
   fakeCompleteSchema,
   publishOrderSchema,
   refundSchema,
+  verifyLinkSchema,
   verifyPaymentSchema,
   type FakeCompleteInput,
   type PublishOrderInput,
   type RefundInput,
+  type VerifyLinkInput,
   type VerifyPaymentInput,
 } from '@parakh/shared';
 import { AuthUser, CurrentUser, Public, Roles } from '../common/decorators';
@@ -98,6 +100,17 @@ export class PaymentsController {
     @Body(new ZodValidationPipe(verifyPaymentSchema)) body: VerifyPaymentInput,
   ) {
     return this.payments.verify(user, body);
+  }
+
+  /** After a Payment Link: Razorpay's callback parameters; the signature is checked server-side. */
+  @Roles('EXAMINER', 'STUDENT')
+  @Post('payments/verify-link')
+  @HttpCode(200)
+  verifyLink(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(verifyLinkSchema)) body: VerifyLinkInput,
+  ) {
+    return this.payments.verifyLink(user, body);
   }
 
   /** Fake provider only: stands in for the gateway's checkout. 404 when real payments are on. */
