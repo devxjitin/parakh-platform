@@ -264,7 +264,7 @@ function Overview() {
                 Payouts
               </Link>
               <Link className="btn btn-secondary btn-link" href="/admin/payments/">
-                Payments and refunds
+                Payments
               </Link>
               <Link className="btn btn-secondary btn-link" href="/admin/certificates/">
                 Certificates

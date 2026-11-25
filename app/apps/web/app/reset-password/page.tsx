@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
           </Button>
         </form>
         <p className="links">
-          <Link href="/forgot-password/">Send a new code</Link>
+          <Link href="/forgot-password/">Resend code</Link>
         </p>
       </Card>
     </Shell>

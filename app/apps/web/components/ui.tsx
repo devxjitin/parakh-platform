@@ -75,7 +75,7 @@ export function Shell({
             Sign in
           </Link>
           <Link href="/register/" className="btn btn-primary btn-small btn-link">
-            Get started
+            Create trainer account
           </Link>
         </div>
       </header>
@@ -118,7 +118,7 @@ function LandingFrame({ children }: { children: React.ReactNode }) {
               Sign in
             </Link>
             <Link href="/register/" className="btn btn-primary btn-small btn-link">
-              Get started
+              Create trainer account
             </Link>
           </div>
         </div>

@@ -95,12 +95,12 @@ export default function VerifyEmailPage() {
           {formError && <Alert>{formError}</Alert>}
           {info && <Alert kind="info">{info}</Alert>}
           <Button type="submit" loading={busy}>
-            Verify and continue
+            Verify code
           </Button>
         </form>
         <p className="links">
           <button type="button" className="btn btn-secondary" onClick={resend} disabled={!email}>
-            Send a new code
+            Resend code
           </button>
         </p>
       </Card>

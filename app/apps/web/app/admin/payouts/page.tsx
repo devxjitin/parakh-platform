@@ -99,7 +99,7 @@ function PayRow({ row, onDone }: { row: AdminPayableRow; onDone: () => Promise<v
                 <StatusBadge status="LIVE" label="Verified" />
               ) : (
                 <Button variant="secondary" small loading={busy} onClick={verify}>
-                  Mark details checked
+                  Mark details verified
                 </Button>
               )}
             </div>
@@ -154,7 +154,7 @@ function PayRow({ row, onDone }: { row: AdminPayableRow; onDone: () => Promise<v
                 />
               </label>
               <Button loading={busy} disabled={utr.trim().length < 6} onClick={pay}>
-                Confirm: I have sent {rupees(Math.round(amount * 100))}
+                Mark as paid {rupees(Math.round(amount * 100))}
               </Button>
               <Button variant="secondary" onClick={() => setOpen(false)}>
                 Cancel

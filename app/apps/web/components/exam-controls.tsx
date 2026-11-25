@@ -190,6 +190,11 @@ export function ExamControls({
           Cancel exam
         </Button>
       </div>
+      <p className="muted">
+        {notStarted
+          ? 'Cancel exam stops the exam and refunds every student who has paid.'
+          : 'Close now stops new students from starting. Cancel exam ends the exam for everyone and refunds students who have not started.'}
+      </p>
     </section>
   );
 }

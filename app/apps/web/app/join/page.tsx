@@ -357,6 +357,13 @@ export default function JoinPage() {
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  // Seconds until "Resend code" works again.
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const student = auth.user?.role === 'STUDENT' ? auth.user : null;
 
@@ -407,8 +414,23 @@ export default function JoinPage() {
     opened.current = true;
     void lookup(queryCode).then(async (found) => {
       if (!found) return;
-      // A saved session is never used here: every visit starts with email, code and payment.
-      if (student) await auth.logout().catch(() => undefined);
+      if (student) {
+        // Reopening the link in the middle of an exam must not cost a new email code: a student who
+        // already holds a seat for this exam keeps the session. Anyone else starts afresh.
+        try {
+          const mine = await api<EnrollmentDto | null>(
+            `/join/${encodeURIComponent(found.code)}/mine`,
+          );
+          if (mine && !mine.canRetake) {
+            setSeat(mine);
+            setStep('seat');
+            return;
+          }
+        } catch {
+          // fall through to a fresh join
+        }
+        await auth.logout().catch(() => undefined);
+      }
       setStep('details');
     });
   }, [queryCode, auth.loading, student, lookup, auth]);
@@ -426,6 +448,28 @@ export default function JoinPage() {
       });
       setOtp('');
       setStep('otp');
+      setCooldown(30);
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendCode() {
+    if (!info || cooldown > 0) return;
+    setError('');
+    setNote('');
+    setBusy(true);
+    try {
+      await api(`/auth/join/${encodeURIComponent(info.code)}/start`, {
+        method: 'POST',
+        auth: false,
+        body: { name, email, acceptTerms: accept },
+      });
+      setOtp('');
+      setCooldown(30);
+      setNote('A new code is on its way. Check your spam folder too.');
     } catch (err) {
       fail(err);
     } finally {
@@ -659,7 +703,7 @@ export default function JoinPage() {
                         loading={busy}
                         disabled={!accept || name.trim().length < 2 || !email}
                       >
-                        Email me a code
+                        Send code
                       </Button>
                     </form>
                   </div>
@@ -683,7 +727,15 @@ export default function JoinPage() {
                         />
                       </label>
                       <Button type="submit" loading={busy} disabled={otp.length !== 6}>
-                        Verify
+                        Verify code
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={busy || cooldown > 0}
+                        onClick={resendCode}
+                      >
+                        {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
                       </Button>
                       <Button type="button" variant="secondary" onClick={() => setStep('details')}>
                         Change email

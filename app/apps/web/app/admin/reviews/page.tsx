@@ -51,7 +51,7 @@ export default function AdminReviewsPage() {
         subtitle={`Students of always-open exams are promised a result within ${REVIEW_PROMISE_HOURS} hours of submitting. Their result is emailed as soon as you mark the last written answer.`}
       >
         <Link className="btn btn-secondary btn-link" href="/admin/">
-          Back to console
+          Back to admin
         </Link>
       </PageHeader>
 
@@ -104,7 +104,7 @@ export default function AdminReviewsPage() {
                         className="btn btn-secondary btn-link"
                         href={`/exams/grade/?exam=${i.examId}&attempt=${i.attemptId}`}
                       >
-                        Mark
+                        Mark answers
                       </Link>
                     </td>
                   </tr>

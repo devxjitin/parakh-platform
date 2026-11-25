@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { REVIEW_PROMISE_HOURS, type StudentResultDto } from '@parakh/shared';
 import { QuestionImage, QuestionText } from '../../components/question-content';
@@ -14,6 +13,7 @@ import {
 } from '../../components/ui';
 import { ApiError, api } from '../../lib/api';
 import { useRequireAuth } from '../../lib/auth';
+import { WEBSITE_URL } from '../../lib/site';
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 
@@ -55,7 +55,7 @@ export default function ResultPage() {
       <Shell wide>
         {error ? <Alert kind="info">{error}</Alert> : <p className="muted">Loading…</p>}
         <p>
-          <Link href="/dashboard/">Back to dashboard</Link>
+          <a href={WEBSITE_URL}>Back to home</a>
         </p>
       </Shell>
     );
@@ -64,9 +64,9 @@ export default function ResultPage() {
   return (
     <Shell wide>
       <PageHeader title={data.examTitle} subtitle="Your result">
-        <Link className="btn btn-secondary btn-link" href="/dashboard/">
-          Back to dashboard
-        </Link>
+        <a className="btn btn-secondary btn-link" href={WEBSITE_URL}>
+          Back to home
+        </a>
       </PageHeader>
 
       <div className="stats">
