@@ -6,11 +6,9 @@ import { Brand } from './brand';
 import { Icon } from './icons';
 
 const LINKS = [
-  { href: '/', id: 'home', label: 'Home' },
   { href: '/#exams', id: 'exams', label: 'Exams' },
   { href: '/#features', id: 'features', label: 'Features' },
   { href: '/#how', id: 'how', label: 'How it works' },
-  { href: '/#certificates', id: 'certificates', label: 'Certificates' },
   { href: '/#verify', id: 'verify', label: 'Verify' },
   { href: '/#pricing', id: 'pricing', label: 'Pricing' },
 ];
