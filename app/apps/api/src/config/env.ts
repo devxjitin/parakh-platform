@@ -11,6 +11,10 @@ const schema = z.object({
   WEB_ORIGIN: z.string().default('http://localhost:3000'),
   // The marketing website, which calls the public certificate check from the browser.
   WEBSITE_ORIGIN: z.string().optional(),
+  /** Origins of the NandiVex company site, allowed to post its contact form. */
+  COMPANY_ORIGIN: z.string().default('https://nandivex.com,https://www.nandivex.com'),
+  /** Where contact-form messages are delivered. */
+  CONTACT_INBOX: z.string().email().default('support@nandivex.com'),
   MAIL_TRANSPORT: z.enum(['ses', 'smtp', 'log', 'memory']).default('log'),
   SES_FROM_EMAIL: z.string().default('no-reply@parakh.nandivex.com'),
   SES_CONFIGURATION_SET: z.string().optional(),

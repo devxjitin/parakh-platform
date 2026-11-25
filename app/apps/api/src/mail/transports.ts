@@ -13,6 +13,8 @@ export interface MailMessage {
   subject: string;
   text: string;
   html: string;
+  /** Where a reply goes, when it is not the sender (for example a contact-form visitor). */
+  replyTo?: string;
   attachments?: MailAttachment[];
 }
 
@@ -39,6 +41,7 @@ export function buildRawEmail(from: string, message: MailMessage): Buffer {
   const lines = [
     `From: ${from}`,
     `To: ${message.to}`,
+    ...(message.replyTo ? [`Reply-To: ${message.replyTo}`] : []),
     `Subject: ${encodeHeader(message.subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/mixed; boundary="${mixed}"`,
@@ -85,6 +88,7 @@ export class SesTransport implements MailTransport {
         FromEmailAddress: from,
         Destination: { ToAddresses: [message.to] },
         ConfigurationSetName: this.configurationSet,
+        ReplyToAddresses: message.replyTo ? [message.replyTo] : undefined,
         Content: message.attachments?.length
           ? { Raw: { Data: buildRawEmail(from, message) } }
           : {
@@ -134,6 +138,7 @@ export class SmtpTransport implements MailTransport {
     const info = await this.transporter.sendMail({
       from: this.from,
       to: message.to,
+      replyTo: message.replyTo,
       subject: message.subject,
       text: message.text,
       html: message.html,

@@ -26,7 +26,7 @@ export function configureApp(app: INestApplication): void {
     }),
   );
   app.enableCors({
-    origin: [env.WEB_ORIGIN, env.WEBSITE_ORIGIN ?? '']
+    origin: [env.WEB_ORIGIN, env.WEBSITE_ORIGIN ?? '', env.COMPANY_ORIGIN]
       .flatMap((list) => list.split(','))
       .map((o) => o.trim())
       .filter(Boolean),
