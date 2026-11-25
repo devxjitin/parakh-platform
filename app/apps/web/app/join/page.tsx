@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY, resendLabel } from '../../lib/copy';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '../../components/icons';
@@ -645,7 +646,7 @@ export default function JoinPage() {
               <p className="muted">
                 {step === 'seat'
                   ? 'Last step. Your seat is confirmed once this is done.'
-                  : 'No account needed. Just your name and email.'}
+                  : 'No password needed. Just your name and email.'}
               </p>
               <StepDots step={step} paid={(info?.feePaise ?? 0) > 0} />
               {error && <Alert>{error}</Alert>}
@@ -703,7 +704,7 @@ export default function JoinPage() {
                         loading={busy}
                         disabled={!accept || name.trim().length < 2 || !email}
                       >
-                        Send code
+                        {COPY.sendCode}
                       </Button>
                     </form>
                   </div>
@@ -727,7 +728,7 @@ export default function JoinPage() {
                         />
                       </label>
                       <Button type="submit" loading={busy} disabled={otp.length !== 6}>
-                        Verify code
+                        {COPY.verifyCode}
                       </Button>
                       <Button
                         type="button"
@@ -735,7 +736,7 @@ export default function JoinPage() {
                         disabled={busy || cooldown > 0}
                         onClick={resendCode}
                       >
-                        {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+                        {resendLabel(cooldown)}
                       </Button>
                       <Button type="button" variant="secondary" onClick={() => setStep('details')}>
                         Change email

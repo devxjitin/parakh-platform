@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../../lib/copy';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { REVIEW_PROMISE_HOURS, type ReviewQueueDto } from '@parakh/shared';
@@ -104,7 +105,7 @@ export default function AdminReviewsPage() {
                         className="btn btn-secondary btn-link"
                         href={`/exams/grade/?exam=${i.examId}&attempt=${i.attemptId}`}
                       >
-                        Mark answers
+                        {COPY.markAnswers}
                       </Link>
                     </td>
                   </tr>

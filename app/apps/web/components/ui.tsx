@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../lib/copy';
 import { SiteLinks } from './legal';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -75,7 +76,7 @@ export function Shell({
             Sign in
           </Link>
           <Link href="/register/" className="btn btn-primary btn-small btn-link">
-            Create trainer account
+            {COPY.createTrainerAccount}
           </Link>
         </div>
       </header>
@@ -118,7 +119,7 @@ function LandingFrame({ children }: { children: React.ReactNode }) {
               Sign in
             </Link>
             <Link href="/register/" className="btn btn-primary btn-small btn-link">
-              Create trainer account
+              {COPY.createTrainerAccount}
             </Link>
           </div>
         </div>

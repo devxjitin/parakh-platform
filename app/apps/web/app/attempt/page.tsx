@@ -381,7 +381,10 @@ export default function AttemptPage() {
       pendingAway = null;
     };
     const onVisibility = () => (document.hidden ? away('TAB_HIDDEN') : back());
-    const onBlur = () => away('WINDOW_BLUR');
+    // Phones without full screen (iOS Safari) blur the window for the notification shade or the
+    // keyboard bar. Leaving the app still shows up as a hidden tab, so only that is counted there.
+    const noFullscreen = typeof document.documentElement.requestFullscreen !== 'function';
+    const onBlur = () => (noFullscreen ? undefined : away('WINDOW_BLUR'));
     const onFullscreen = () => {
       const inFs = Boolean(document.fullscreenElement);
       setFullscreen(inFs);

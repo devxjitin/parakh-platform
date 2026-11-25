@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../lib/copy';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -60,7 +61,7 @@ export default function ForgotPasswordPage() {
           />
           {formError && <Alert>{formError}</Alert>}
           <Button type="submit" loading={busy}>
-            Send code
+            {COPY.sendCode}
           </Button>
         </form>
         <p className="links">

@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../../lib/copy';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -750,7 +751,7 @@ export default function EditExamPage() {
     return (
       <Shell wide>
         <Alert>{error}</Alert>
-        <Link href="/exams/">Back to exams</Link>
+        <Link href="/exams/">{COPY.backToExams}</Link>
       </Shell>
     );
   }
@@ -819,7 +820,7 @@ export default function EditExamPage() {
         </div>
         <div className="toolbar">
           <Link className="btn btn-secondary btn-link" href="/exams/">
-            Back to exams
+            {COPY.backToExams}
           </Link>
           <Link className="btn btn-primary btn-link" href={`/exams/preview/?id=${exam.id}`}>
             Preview as student
