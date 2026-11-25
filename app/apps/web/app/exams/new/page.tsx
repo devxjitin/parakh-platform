@@ -62,7 +62,7 @@ export default function NewExamPage() {
         }
       >
         <Link className="btn btn-secondary btn-link" href="/exams/">
-          Back to your exams
+          Back to exams
         </Link>
       </PageHeader>
 

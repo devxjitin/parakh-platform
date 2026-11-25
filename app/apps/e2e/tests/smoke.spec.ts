@@ -31,7 +31,7 @@ test('register and verify an email', async ({ page }) => {
 
   await page.waitForURL(/verify-email/);
   await page.getByLabel('Verification code').fill(await emailedCode(trainer.email));
-  await page.getByRole('button', { name: 'Verify and continue' }).click();
+  await page.getByRole('button', { name: 'Verify code' }).click();
 
   await page.waitForURL(/dashboard/);
   await expect(page.getByRole('heading', { name: 'Recent exams' })).toBeVisible();
@@ -131,9 +131,9 @@ test('join with a code and an emailed code, take the exam on a phone and submit'
   await page.getByLabel(/Full name/).fill(student.name);
   await page.getByLabel('Email').fill(student.email);
   await page.getByRole('checkbox').check();
-  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByRole('button', { name: 'Send code' }).click();
   await page.getByLabel('6-digit code').fill(await emailedCode(student.email));
-  await page.getByRole('button', { name: 'Verify' }).click();
+  await page.getByRole('button', { name: 'Verify code' }).click();
   await page.getByRole('button', { name: /Pay .* and join/ }).click();
   // Paying confirms the seat and takes the student straight into the exam.
   await page.waitForURL(/attempt/);

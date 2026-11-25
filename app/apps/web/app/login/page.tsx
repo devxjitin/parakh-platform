@@ -178,7 +178,7 @@ export default function LoginPage() {
               <span>or</span>
             </div>
             <p className="links-new">
-              New trainer? <Link href="/register/">Create an account</Link>
+              New trainer? <Link href="/register/">Create trainer account</Link>
             </p>
           </div>
         </Card>

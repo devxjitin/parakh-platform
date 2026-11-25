@@ -54,6 +54,8 @@ function navFor(role: string): NavItem[] {
       { href: '/payments/', label: 'My payments', icon: 'wallet' },
     ];
   }
+  // Anything but trainer or admin (a student, an unknown role) gets no menu.
+  if (role !== 'ADMIN') return [];
   return [
     home,
     { href: '/exams/', label: 'My exams', icon: 'exams' },

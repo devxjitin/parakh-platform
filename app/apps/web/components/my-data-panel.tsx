@@ -97,7 +97,7 @@ export function MyDataPanel({ canClose, onClosed }: { canClose: boolean; onClose
                 />
                 <div className="toolbar">
                   <Button type="submit" variant="danger" loading={busy === 'close'}>
-                    Close my account for good
+                    Delete my account
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => setClosing(false)}>
                     Cancel

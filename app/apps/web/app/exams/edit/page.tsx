@@ -750,7 +750,7 @@ export default function EditExamPage() {
     return (
       <Shell wide>
         <Alert>{error}</Alert>
-        <Link href="/exams/">Back to your exams</Link>
+        <Link href="/exams/">Back to exams</Link>
       </Shell>
     );
   }
@@ -819,7 +819,7 @@ export default function EditExamPage() {
         </div>
         <div className="toolbar">
           <Link className="btn btn-secondary btn-link" href="/exams/">
-            All exams
+            Back to exams
           </Link>
           <Link className="btn btn-primary btn-link" href={`/exams/preview/?id=${exam.id}`}>
             Preview as student
