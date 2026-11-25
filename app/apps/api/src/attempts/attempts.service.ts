@@ -70,12 +70,16 @@ export class AttemptsService {
     if (exam.status !== 'PUBLISHED') throw new ConflictException('This exam is not available');
     if (exam.startsAt && exam.startsAt > now)
       throw new ConflictException('This exam has not opened yet');
-    if (exam.endsAt && exam.endsAt <= now) throw new ConflictException('This exam has ended');
+    // An always-open exam has no window: a retired one still lets students who already paid sit it.
+    const windowed = !exam.alwaysOpen;
+    if (windowed && exam.endsAt && exam.endsAt <= now) {
+      throw new ConflictException('This exam has ended');
+    }
 
     // A student with extra time (accommodation) also gets the window extended by that much.
     const extra = enrollment.extraMinutes * 60_000;
     const byDuration = new Date(now.getTime() + exam.durationMinutes * 60_000 + extra);
-    const closing = exam.endsAt ? new Date(exam.endsAt.getTime() + extra) : null;
+    const closing = windowed && exam.endsAt ? new Date(exam.endsAt.getTime() + extra) : null;
     const deadlineAt = closing && closing < byDuration ? closing : byDuration;
 
     // Every student gets the same paper; only the order may differ.
@@ -91,21 +95,37 @@ export class AttemptsService {
 
     let attemptId: string;
     try {
-      const created = await this.prisma.attempt.create({
-        data: {
-          enrollmentId: enrollment.id,
-          examId: exam.id,
-          studentId: user.id,
-          startedAt: now,
-          deadlineAt,
-          questionOrder,
-          optionOrders,
-          deviceId: client.deviceId,
-          startIp: client.ip,
-          lastIp: client.ip,
-          lastSeenAt: now,
-          userAgent: client.userAgent,
-        },
+      const created = await this.prisma.$transaction(async (tx) => {
+        if (enrollment.paymentId) {
+          // Lock the payment row so a refund cannot be claimed between this check and the insert
+          // (the refund claim takes the same row and re-checks for an attempt afterwards).
+          await tx.$queryRaw`SELECT "id" FROM "Payment" WHERE "id" = ${enrollment.paymentId}::uuid FOR UPDATE`;
+          const payment = await tx.payment.findUnique({
+            where: { id: enrollment.paymentId },
+            select: { status: true },
+          });
+          if (payment && (payment.status === 'PENDING_REFUND' || payment.status === 'REFUNDED')) {
+            throw new ConflictException(
+              'This seat is being refunded, so the exam cannot be started',
+            );
+          }
+        }
+        return tx.attempt.create({
+          data: {
+            enrollmentId: enrollment.id,
+            examId: exam.id,
+            studentId: user.id,
+            startedAt: now,
+            deadlineAt,
+            questionOrder,
+            optionOrders,
+            deviceId: client.deviceId,
+            startIp: client.ip,
+            lastIp: client.ip,
+            lastSeenAt: now,
+            userAgent: client.userAgent,
+          },
+        });
       });
       attemptId = created.id;
       await this.audit.log({

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   integrityFlags,
   round2,
@@ -28,6 +28,8 @@ function csvCell(value: string | number | null): string {
 
 @Injectable()
 export class ResultsService {
+  private readonly logger = new Logger(ResultsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly grading: GradingService,
@@ -41,7 +43,11 @@ export class ResultsService {
   private async findOwned(user: AuthUser, examId: string) {
     const exam = UUID.test(examId)
       ? await this.prisma.exam.findFirst({
-          where: { id: examId, examinerId: user.id },
+          // An admin also marks the always-open exams: they have no trainer.
+          where: {
+            id: examId,
+            OR: [{ examinerId: user.id }, ...(user.role === 'ADMIN' ? [{ alwaysOpen: true }] : [])],
+          },
           include: { questions: { orderBy: { position: 'asc' } } },
         })
       : null;
@@ -320,6 +326,12 @@ export class ResultsService {
       data: { marksAwarded: input.marks, feedback: input.feedback ?? null, gradedAt: new Date() },
     });
     await this.grading.gradeAttempt(attemptId);
+    // Always-open exam: the student's result goes out the moment their last answer is marked.
+    if (exam.alwaysOpen) {
+      this.delivery.deliverIfObjective(attemptId).catch((err: Error) => {
+        this.logger.warn(`Release for attempt ${attemptId} failed: ${err.message}`);
+      });
+    }
     await this.audit.log({
       actorId: user.id,
       action: 'answer.grade',
@@ -338,6 +350,11 @@ export class ResultsService {
     }
     if (exam.status !== 'PUBLISHED') {
       throw new ConflictException('This exam has not been published');
+    }
+    if (exam.alwaysOpen) {
+      throw new ConflictException(
+        'An always-open exam has no results to publish: each result is released when it is marked.',
+      );
     }
     if (exam.endsAt && exam.endsAt > new Date()) {
       throw new ConflictException(

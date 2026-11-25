@@ -68,6 +68,10 @@ export interface JoinInfoDto {
   nandivexHosted: boolean;
   /** The trainer paid for a fixed list of students: only those emails can join, and nobody pays. */
   sponsored: boolean;
+  /** Open any time after payment: there are no start and end times. */
+  alwaysOpen: boolean;
+  /** Has written answers, so the result comes by email after a person has reviewed them. */
+  hasWrittenQuestions: boolean;
   state: JoinState;
 }
 
@@ -85,6 +89,8 @@ export interface EnrollmentDto {
   result: { score: number; maxScore: number; percent: number; passed: boolean } | null;
   /** The exam window is open and no attempt has ended yet. */
   canStart: boolean;
+  /** An always-open exam whose result has been emailed: the student can take it again (and pay again). */
+  canRetake: boolean;
 }
 
 export interface AttemptQuestionDto extends QuestionPresentation {

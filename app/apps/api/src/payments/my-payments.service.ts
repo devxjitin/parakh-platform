@@ -112,7 +112,7 @@ export class MyPaymentsService {
       payerName: payer.name,
       payerEmail: payer.email,
       gatewayReference: p.providerPaymentId,
-      note: 'This is a payment receipt, not a GST tax invoice. Amounts include applicable taxes.',
+      note: 'This is a payment receipt, not a GST tax invoice. NandiVex Technologies is not registered under GST, so no GST is charged.',
     };
   }
 

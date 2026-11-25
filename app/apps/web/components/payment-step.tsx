@@ -145,7 +145,7 @@ export function PaymentStep({
         </div>
       </dl>
       <p className="muted" style={{ margin: 0 }}>
-        Prices include applicable taxes. See the{' '}
+        Prices are final; no GST is added. See the{' '}
         <a href="/refund-policy/" target="_blank" rel="noopener noreferrer">
           refund policy
         </a>

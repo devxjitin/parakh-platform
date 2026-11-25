@@ -114,6 +114,22 @@ describe('publishing prerequisites', () => {
     expect(await ctx.prisma.payment.count()).toBe(0);
   });
 
+  it('rejects a start time that has passed, even when the exam has not closed yet', async () => {
+    // Made 10 minutes ahead, then publishing took too long: the start is already behind us.
+    const late = await readyExam(trainer, {
+      durationMinutes: 30,
+      startsAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+      endsAt: new Date(Date.now() + 2 * 3_600_000).toISOString(),
+    });
+    const res = await ctx
+      .http()
+      .post(`/exams/${late}/publish-order`)
+      .set(auth(trainer))
+      .expect(400);
+    expect(res.body.message).toContain('start time has already passed');
+    expect(await ctx.prisma.payment.count()).toBe(0);
+  });
+
   it('rejects a window in the past or shorter than the duration', async () => {
     const past = await readyExam(trainer, { startsAt: days(-3), endsAt: days(-2) });
     await ctx.http().post(`/exams/${past}/publish-order`).set(auth(trainer)).expect(400);
@@ -361,5 +377,86 @@ describe('webhook', () => {
 describe('exam codes', () => {
   it('look like NVX-XXXXXX without confusing characters', () => {
     for (let i = 0; i < 200; i++) expect(generateExamCode()).toMatch(/^NVX-[A-HJKMNP-Z2-9]{6}$/);
+  });
+});
+
+describe('publish payment integrity', () => {
+  async function orderWith(examId: string, studentEmails: string[]) {
+    const res = await ctx
+      .http()
+      .post(`/exams/${examId}/publish-order`)
+      .set(auth(trainer))
+      .send({ studentEmails })
+      .expect(200);
+    return res.body as { orderId: string; amountPaise: number };
+  }
+
+  async function verify(orderId: string) {
+    const paid = await checkout(orderId);
+    return ctx.http().post('/payments/verify').set(auth(trainer)).send(paid);
+  }
+
+  it('gives exactly the seats that were paid for, even if another order lists more students', async () => {
+    const id = await readyExam();
+    const cheap = await orderWith(id, ['one@example.com']);
+    // A second tab asks for 3 seats; that unpaid order must not leak into the cheap one.
+    await orderWith(id, ['a@example.com', 'b@example.com', 'c@example.com']);
+    await verify(cheap.orderId).then((r) => expect(r.status).toBe(200));
+
+    const seats = await ctx.prisma.seat.findMany({ where: { pack: { examId: id } } });
+    expect(seats.map((s) => s.email)).toEqual(['one@example.com']);
+    const exam = await ctx.prisma.exam.findUniqueOrThrow({ where: { id } });
+    expect(exam.sponsoredEmails).toEqual(['one@example.com']);
+  });
+
+  it('keeps the exam row untouched until a payment is captured', async () => {
+    const id = await readyExam();
+    await orderWith(id, ['one@example.com', 'two@example.com']);
+    const exam = await ctx.prisma.exam.findUniqueOrThrow({ where: { id } });
+    expect(exam.sponsoredEmails).toEqual([]);
+  });
+
+  it('flags a second creation payment for an already published exam for refund', async () => {
+    const id = await readyExam();
+    const first = await orderWith(id, []);
+    // A different seat list makes a different order, so both can be open at the same time.
+    const second = await orderWith(id, ['dup@example.com']);
+    const firstPaid = await checkout(first.orderId);
+    const secondPaid = await checkout(second.orderId);
+    await ctx.http().post('/payments/verify').set(auth(trainer)).send(firstPaid).expect(200);
+    await ctx.http().post('/payments/verify').set(auth(trainer)).send(secondPaid).expect(200);
+
+    const payments = await ctx.prisma.payment.findMany({
+      where: { examId: id },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(payments.map((p) => p.needsRefund)).toEqual([false, true]);
+    // The duplicate buys no seats and no receipt.
+    expect(await ctx.prisma.seat.count({ where: { pack: { examId: id } } })).toBe(0);
+    const receipts = ctx.mail.outbox.filter(
+      (m) => m.to === 'trainer@example.com' && /^Receipt /.test(m.subject),
+    );
+    expect(receipts).toHaveLength(1);
+  });
+
+  it('does not publish when the payment lands after the exam window closed', async () => {
+    const id = await readyExam();
+    const o = await order(id);
+    await ctx.prisma.exam.update({
+      where: { id },
+      data: {
+        startsAt: new Date(Date.now() - 3 * 3_600_000),
+        endsAt: new Date(Date.now() - 3_600_000),
+      },
+    });
+    await verify(o.orderId).then((r) => expect(r.status).toBe(200));
+
+    const exam = await ctx.prisma.exam.findUniqueOrThrow({ where: { id } });
+    expect(exam.status).toBe('DRAFT');
+    expect(exam.code).toBeNull();
+    const payment = await ctx.prisma.payment.findFirstOrThrow({ where: { examId: id } });
+    expect(payment.status).toBe('CAPTURED');
+    expect(payment.needsRefund).toBe(true);
+    expect(ctx.mail.lastTo('trainer@example.com')?.subject).toMatch(/was not published/);
   });
 });

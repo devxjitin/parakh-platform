@@ -19,6 +19,9 @@ export function generatePracticeCode(): string {
 }
 
 const DAY_MS = 86_400_000;
+/** Days after an exam closes before the trainer is reminded, and before the admins are told. */
+export const RESULTS_REMINDER_DAYS = 3;
+export const RESULTS_ESCALATE_DAYS = 7;
 
 /** Background notifications. Safe to run on several servers: each reminder is claimed once. */
 @Injectable()
@@ -39,6 +42,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     this.timer = setInterval(() => {
       void this.sendReminders();
       void this.sendPracticeCodes();
+      void this.sendResultsOverdue();
     }, 60_000);
     this.timer.unref();
   }
@@ -94,6 +98,78 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Scheduled exams whose results are still unpublished after they closed: the trainer is reminded
+   * after 3 days and the admins are told after 7. Each step is claimed first, so it goes out once.
+   * Returns how many emails were sent.
+   */
+  async sendResultsOverdue(now = new Date()): Promise<number> {
+    try {
+      let sent = 0;
+      const base = { status: 'PUBLISHED' as const, alwaysOpen: false };
+      const include = {
+        examiner: { select: { email: true, name: true, status: true } },
+        _count: { select: { attempts: true } },
+      };
+      const reminders = await this.prisma.exam.findMany({
+        where: {
+          ...base,
+          resultsReminderSentAt: null,
+          endsAt: { lte: new Date(now.getTime() - RESULTS_REMINDER_DAYS * DAY_MS) },
+        },
+        include,
+        take: 100,
+      });
+      for (const e of reminders) {
+        const claimed = await this.prisma.exam.updateMany({
+          where: { id: e.id, resultsReminderSentAt: null, status: 'PUBLISHED' },
+          data: { resultsReminderSentAt: now },
+        });
+        if (claimed.count === 0 || e.examiner.status !== 'ACTIVE' || e._count.attempts === 0)
+          continue;
+        await this.mail.sendResultsOverdue(e.examiner.email, e.examiner.name, {
+          examTitle: e.title,
+          days: RESULTS_REMINDER_DAYS,
+          waiting: e._count.attempts,
+        });
+        sent++;
+      }
+      const escalations = await this.prisma.exam.findMany({
+        where: {
+          ...base,
+          resultsEscalatedAt: null,
+          endsAt: { lte: new Date(now.getTime() - RESULTS_ESCALATE_DAYS * DAY_MS) },
+        },
+        include,
+        take: 100,
+      });
+      for (const e of escalations) {
+        const claimed = await this.prisma.exam.updateMany({
+          where: { id: e.id, resultsEscalatedAt: null, status: 'PUBLISHED' },
+          data: { resultsEscalatedAt: now },
+        });
+        if (claimed.count === 0 || e._count.attempts === 0) continue;
+        const admins = await this.prisma.user.findMany({
+          where: { role: 'ADMIN', status: 'ACTIVE' },
+          select: { email: true, name: true },
+        });
+        for (const a of admins) {
+          await this.mail.sendResultsOverdue(a.email, a.name, {
+            examTitle: e.title,
+            days: RESULTS_ESCALATE_DAYS,
+            waiting: e._count.attempts,
+            forAdmin: { trainer: e.examiner.name },
+          });
+          sent++;
+        }
+      }
+      return sent;
+    } catch (err) {
+      this.logger.error('Results overdue job failed', err as Error);
+      return 0;
+    }
+  }
+
+  /**
    * Once an exam has closed, every student who handed in an attempt gets a practice code by email.
    * It opens the same questions for free practice (no payment, no certificate, no effect on the
    * score). Each student is claimed before the email goes out, so nobody gets two.
@@ -108,6 +184,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         JOIN "Exam" e ON e."id" = a."examId"
         LEFT JOIN "PracticeAccess" p ON p."studentId" = a."studentId" AND p."examId" = a."examId"
         WHERE a."status" <> 'IN_PROGRESS'
+          AND e."alwaysOpen" = false
           AND (e."status" = 'RESULTS_FINAL' OR (e."status" = 'PUBLISHED' AND e."endsAt" <= ${now}))
           AND p."emailedAt" IS NULL
         LIMIT 300`;

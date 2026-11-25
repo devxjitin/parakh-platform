@@ -425,6 +425,13 @@ export class PayoutsService {
     input: { utr: string; note?: string | null },
   ): Promise<Payout> {
     const profile = await tx.examinerProfile.findUnique({ where: { userId: payout.examinerId } });
+    // Money only goes to details an admin has verified. Changing the details resets this, so a
+    // swapped account can never be paid by habit.
+    if (!profile?.payoutMethod || !profile.payoutDetailsVerifiedAt) {
+      throw new ConflictException(
+        "Verify this trainer's payout details before recording a payment",
+      );
+    }
     // The amount must still be covered by released money, after the other open requests.
     const balances = await this.ledger.balances(payout.examinerId, tx);
     const otherPending =

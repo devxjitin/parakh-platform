@@ -474,8 +474,10 @@ export class CertificatesService implements OnModuleInit, OnModuleDestroy {
     template: CertificateTemplate,
   ): Promise<TrainerCertificatesDto> {
     const exam = await this.ownedExam(user, examId);
-    if (exam.status === 'RESULTS_FINAL') {
-      throw new ConflictException('Results are published, so the certificate can no longer change');
+    if (exam.status !== 'DRAFT') {
+      throw new ConflictException(
+        'This exam is published, so the certificate can no longer change',
+      );
     }
     await this.prisma.exam.update({
       where: { id: exam.id },

@@ -167,6 +167,9 @@ describe('payout requests', () => {
 
     const rows = (await get(admin, '/admin/finance/payable').expect(200)).body;
     expect(rows[0].request.id).toBe(req.id);
+    // Unverified details block the payment; checking them unlocks it.
+    await post(admin, `/admin/finance/payouts/${req.id}/pay`, { utr: 'UTR987654' }).expect(409);
+    await post(admin, `/admin/finance/examiners/${trainerId}/verify-details`).expect(200);
     await post(admin, `/admin/finance/payouts/${req.id}/pay`, { utr: 'UTR987654' }).expect(200);
 
     mine = (await get(trainer, '/me/earnings').expect(200)).body;

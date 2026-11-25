@@ -11,15 +11,22 @@ export default function ContactPage() {
       </p>
 
       <h2>Operating entity</h2>
+      <p>Parakh is an online platform operated by NandiVex Technologies.</p>
       <p>
-        Parakh is an online platform operated by NandiVex Technologies. Location: operating online
-        across India.
+        <b>Address:</b> NandiVex Technologies, Sultanpur, Uttar Pradesh, India.
       </p>
 
       <h2>Support and inquiries</h2>
       <ul>
         <li>
           <b>Support email:</b> <a href="mailto:support@nandivex.com">support@nandivex.com</a>
+        </li>
+        <li>
+          <b>Phone and WhatsApp:</b> <a href="tel:+917408068618">+91 74080 68618</a>
+          {' · '}
+          <a href="https://wa.me/917408068618" target="_blank" rel="noreferrer">
+            Chat with us on WhatsApp
+          </a>
         </li>
         <li>
           <b>Operating hours:</b> Monday to Saturday, 10:00 AM to 6:00 PM IST
@@ -47,7 +54,7 @@ export default function ContactPage() {
       </p>
       <ul>
         <li>
-          <b>Grievance officer:</b> Jitin Kumar Sengar
+          <b>Grievance officer:</b> Sonia Dahiya
         </li>
         <li>
           <b>Email:</b> <a href="mailto:support@nandivex.com">support@nandivex.com</a>

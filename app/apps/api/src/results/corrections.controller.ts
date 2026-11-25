@@ -1,55 +1,17 @@
-import { Body, Controller, HttpCode, Param, Patch, Put } from '@nestjs/common';
-import {
-  answerKeySchema,
-  correctQuestionSchema,
-  dropQuestionSchema,
-  overrideMarksSchema,
-  type AnswerKeyInput,
-  type CorrectQuestionInput,
-  type DropQuestionInput,
-  type OverrideMarksInput,
-} from '@parakh/shared';
+import { Body, Controller, HttpCode, Param, Put } from '@nestjs/common';
+import { overrideMarksSchema, type OverrideMarksInput } from '@parakh/shared';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { ZodValidationPipe } from '../common/zod.pipe';
 import { CorrectionsService } from './corrections.service';
 
-/** Trainer-only fixes to a published exam, before results are published. */
+/**
+ * A published exam is never edited: its questions, answer key and wording stay as published.
+ * The only change a trainer can make afterwards is a one-off mark for one student's answer.
+ */
 @Roles('EXAMINER', 'ADMIN')
 @Controller('exams/:examId')
 export class CorrectionsController {
   constructor(private readonly corrections: CorrectionsService) {}
-
-  @Patch('questions/:questionId/correction')
-  correct(
-    @CurrentUser() user: AuthUser,
-    @Param('examId') examId: string,
-    @Param('questionId') questionId: string,
-    @Body(new ZodValidationPipe(correctQuestionSchema)) body: CorrectQuestionInput,
-  ) {
-    return this.corrections.correctText(user, examId, questionId, body);
-  }
-
-  @Put('questions/:questionId/answer-key')
-  @HttpCode(200)
-  key(
-    @CurrentUser() user: AuthUser,
-    @Param('examId') examId: string,
-    @Param('questionId') questionId: string,
-    @Body(new ZodValidationPipe(answerKeySchema)) body: AnswerKeyInput,
-  ) {
-    return this.corrections.setAnswerKey(user, examId, questionId, body);
-  }
-
-  @Put('questions/:questionId/dropped')
-  @HttpCode(200)
-  drop(
-    @CurrentUser() user: AuthUser,
-    @Param('examId') examId: string,
-    @Param('questionId') questionId: string,
-    @Body(new ZodValidationPipe(dropQuestionSchema)) body: DropQuestionInput,
-  ) {
-    return this.corrections.setDropped(user, examId, questionId, body);
-  }
 
   @Put('attempts/:attemptId/answers/:questionId/override')
   @HttpCode(200)

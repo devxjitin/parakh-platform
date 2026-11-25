@@ -34,3 +34,22 @@ export interface VerifyCertificateDto {
   kind?: CertKind;
   issuedOn?: string;
 }
+
+/** One exam on the public "Available exams" list (GET /catalog/exams). Metadata only. */
+export interface CatalogExamDto {
+  code: string;
+  title: string;
+  summary: string | null;
+  topics: string[];
+  /** The field the exam belongs to (empty = Other). */
+  category: string;
+  questionCount: number;
+  totalMarks: number;
+  durationMinutes: number;
+  passPercent: number;
+  feePaise: number;
+  hasWrittenQuestions: boolean;
+}
+
+/** Keep in sync with REVIEW_PROMISE_HOURS in the app's shared package. */
+export const REVIEW_PROMISE_HOURS = 24;

@@ -42,7 +42,7 @@ function Receipt({ r, onClose }: { r: MyReceiptDto; onClose: () => void }) {
           <tr>
             <th>Amount</th>
             <td>
-              <strong>{rupees(r.amountPaise)}</strong> (inclusive of applicable taxes)
+              <strong>{rupees(r.amountPaise)}</strong> (final price, no GST added)
             </td>
           </tr>
           <tr>

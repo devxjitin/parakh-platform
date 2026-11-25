@@ -29,6 +29,7 @@ import {
 } from '@parakh/shared';
 import { parseQuestionsTxt, type ParsedQuestion } from '@parakh/question-parser';
 import { AuditService } from '../audit/audit.service';
+import { CategoriesService } from '../categories/categories.service';
 import type { AuthUser } from '../common/decorators';
 import { PrismaService } from '../prisma/prisma.service';
 import { readPrivateImage, validateImage } from '../storage/private-image';
@@ -46,12 +47,22 @@ export class ExamsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly categories: CategoriesService,
     @Inject(STORAGE) private readonly storage: Storage,
   ) {}
 
   // ------------------------------------------------------------------ exams
 
   async create(user: AuthUser, input: CreateExamInput): Promise<ExamDetailDto> {
+    const isAdmin = user.role === 'ADMIN';
+    const alwaysOpen = input.alwaysOpen ?? false;
+    if (!isAdmin && (alwaysOpen || input.catalogTopics?.length)) {
+      throw new BadRequestException('Only NandiVex can make an always-open exam');
+    }
+    // An always-open exam must be filed under one of the categories an admin created.
+    const catalogCategory = alwaysOpen
+      ? await this.categories.resolve(input.catalogCategory ?? '')
+      : '';
     const exam = await this.prisma.exam.create({
       data: {
         examinerId: user.id,
@@ -63,14 +74,23 @@ export class ExamsService {
         description: input.description ?? null,
         instructions: input.instructions ?? null,
         durationMinutes: input.durationMinutes,
-        startsAt: input.startsAt ? new Date(input.startsAt) : null,
+        alwaysOpen,
+        // Every always-open exam is on the public list once it is published.
+        listedPublicly: alwaysOpen,
+        catalogSummary: isAdmin ? (input.catalogSummary ?? null) : null,
+        catalogTopics: isAdmin ? (input.catalogTopics ?? []) : [],
+        catalogCategory,
+        // An always-open exam has no window at all.
+        startsAt: !alwaysOpen && input.startsAt ? new Date(input.startsAt) : null,
         // The exam closes when its time is up: the opening time plus the duration. An explicit
         // closing time (older clients, tests) is still honoured.
-        endsAt: input.endsAt
-          ? new Date(input.endsAt)
-          : input.startsAt
-            ? closingTime(new Date(input.startsAt), input.durationMinutes)
-            : null,
+        endsAt: alwaysOpen
+          ? null
+          : input.endsAt
+            ? new Date(input.endsAt)
+            : input.startsAt
+              ? closingTime(new Date(input.startsAt), input.durationMinutes)
+              : null,
         passPercent: input.passPercent,
         shuffleQuestions: input.shuffleQuestions,
         shuffleOptions: input.shuffleOptions,
@@ -139,6 +159,10 @@ export class ExamsService {
           examinerId: user.id,
           nandivexHosted: source.nandivexHosted,
           studentFeePaise: source.studentFeePaise,
+          alwaysOpen: source.alwaysOpen,
+          catalogSummary: source.catalogSummary,
+          catalogTopics: source.catalogTopics,
+          catalogCategory: source.catalogCategory,
           title: `Copy of ${source.title}`.slice(0, 200),
           description: source.description,
           instructions: source.instructions,
@@ -185,27 +209,84 @@ export class ExamsService {
 
   async update(user: AuthUser, examId: string, input: UpdateExamInput): Promise<ExamDetailDto> {
     const exam = await this.findOwned(user, examId);
+    // Once an exam is published nothing about it can change: not its questions, settings, times
+    // or the card students see in the exam list.
     this.assertDraft(exam);
     if (input.studentFeePaise !== undefined && !exam.nandivexHosted) {
       throw new BadRequestException('Only NandiVex-run exams have a custom student fee');
     }
+    const touchesCatalog =
+      input.alwaysOpen !== undefined ||
+      input.catalogSummary !== undefined ||
+      input.catalogTopics !== undefined ||
+      input.catalogCategory !== undefined;
+    if (touchesCatalog && !exam.nandivexHosted) {
+      throw new BadRequestException('Only NandiVex-run exams can be always open');
+    }
+    if (input.alwaysOpen !== undefined && input.alwaysOpen !== exam.alwaysOpen) {
+      throw new BadRequestException(
+        'An exam is either always open or scheduled. Create a new exam to change that.',
+      );
+    }
+    const alwaysOpen = exam.alwaysOpen;
+    if (
+      !alwaysOpen &&
+      (input.catalogSummary || input.catalogTopics?.length || input.catalogCategory)
+    ) {
+      throw new BadRequestException('Only an always-open exam appears in the exam list');
+    }
+    // An always-open exam always stays filed under one of the admin's categories.
+    const catalogCategory =
+      alwaysOpen && input.catalogCategory !== undefined
+        ? await this.categories.resolve(input.catalogCategory)
+        : undefined;
+    // The list card always needs its summary and topics.
+    const missing: Record<string, string[]> = {};
+    if (alwaysOpen && input.catalogSummary !== undefined && !input.catalogSummary?.trim()) {
+      missing.catalogSummary = ['Write a short summary students will see in the exam list'];
+    }
+    if (alwaysOpen && input.catalogTopics !== undefined && input.catalogTopics.length === 0) {
+      missing.catalogTopics = ['Add at least one topic'];
+    }
+    if (Object.keys(missing).length > 0) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: 'Validation failed',
+        errors: missing,
+      });
+    }
 
     // The window rule also has to hold against values that were not part of this request.
-    const startsAt =
-      input.startsAt === undefined
+    const startsAt = alwaysOpen
+      ? null
+      : input.startsAt === undefined
         ? exam.startsAt
         : input.startsAt
           ? new Date(input.startsAt)
           : null;
     const durationMinutes = input.durationMinutes ?? exam.durationMinutes;
-    let endsAt =
-      input.endsAt === undefined ? exam.endsAt : input.endsAt ? new Date(input.endsAt) : null;
-    // No closing time sent and the start or duration changed: it closes when its time is up.
+    let endsAt = alwaysOpen
+      ? null
+      : input.endsAt === undefined
+        ? exam.endsAt
+        : input.endsAt
+          ? new Date(input.endsAt)
+          : null;
+    // The closing time follows the start and duration (closes when its time is up) unless the
+    // trainer set a later one of their own. Sending null asks for the automatic closing again.
     const timingChanged = input.startsAt !== undefined || input.durationMinutes !== undefined;
-    if (input.endsAt === undefined && timingChanged) {
+    const wasAutomatic =
+      !exam.startsAt ||
+      !exam.endsAt ||
+      exam.endsAt.getTime() === closingTime(exam.startsAt, exam.durationMinutes).getTime();
+    const followStart =
+      input.endsAt === null || (input.endsAt === undefined && timingChanged && wasAutomatic);
+    if (!alwaysOpen && followStart) {
       endsAt = startsAt ? closingTime(startsAt, durationMinutes) : null;
     }
-    const endsAtChanged = input.endsAt !== undefined || timingChanged;
+    // Switching to always open clears any window that was set before.
+    const endsAtChanged =
+      input.endsAt !== undefined || timingChanged || input.alwaysOpen !== undefined;
     if (startsAt && endsAt && endsAt <= startsAt) {
       throw new BadRequestException({
         statusCode: 400,
@@ -231,8 +312,13 @@ export class ExamsService {
           description: input.description,
           instructions: input.instructions,
           durationMinutes: input.durationMinutes,
-          startsAt: input.startsAt === undefined ? undefined : startsAt,
+          startsAt:
+            input.startsAt === undefined && input.alwaysOpen === undefined ? undefined : startsAt,
           endsAt: endsAtChanged ? endsAt : undefined,
+          alwaysOpen: input.alwaysOpen,
+          catalogSummary: input.catalogSummary,
+          catalogTopics: input.catalogTopics,
+          catalogCategory,
           passPercent: input.passPercent,
           shuffleQuestions: input.shuffleQuestions,
           shuffleOptions: input.shuffleOptions,
@@ -721,6 +807,7 @@ export class ExamsService {
       id: exam.id,
       title: exam.title,
       status: exam.status,
+      alwaysOpen: exam.alwaysOpen,
       durationMinutes: exam.durationMinutes,
       startsAt: exam.startsAt?.toISOString() ?? null,
       endsAt: exam.endsAt?.toISOString() ?? null,
@@ -747,6 +834,11 @@ export class ExamsService {
       nandivexHosted: exam.nandivexHosted,
       sponsoredCount: exam.sponsoredEmails.length,
       studentFeePaise: exam.studentFeePaise,
+      alwaysOpen: exam.alwaysOpen,
+      listedPublicly: exam.listedPublicly,
+      catalogSummary: exam.catalogSummary,
+      catalogTopics: exam.catalogTopics,
+      catalogCategory: exam.catalogCategory,
       code: exam.code,
       publishedAt: exam.publishedAt?.toISOString() ?? null,
       aiBrief: (exam.aiBrief ?? null) as Record<string, unknown> | null,

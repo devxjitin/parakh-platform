@@ -18,6 +18,11 @@ export async function publishExam(
   settings: Record<string, unknown> = {},
   extra: object[] = [],
 ): Promise<PublishedExam> {
+  // An exam cannot be published with a start time that has passed, so a window that should already
+  // be open is created in the future and moved back once the exam is published.
+  const wantStart = (settings.startsAt as string | undefined) ?? hours(-1);
+  const wantEnd = (settings.endsAt as string | undefined) ?? hours(3);
+  const backdate = new Date(wantStart).getTime() <= Date.now();
   const exam = await ctx
     .http()
     .post('/exams')
@@ -25,9 +30,9 @@ export async function publishExam(
     .send({
       title: 'Cloud Fundamentals',
       durationMinutes: 60,
-      startsAt: hours(-1),
-      endsAt: hours(3),
       ...settings,
+      startsAt: backdate ? hours(1) : wantStart,
+      endsAt: backdate ? hours(5) : wantEnd,
     })
     .expect(201);
   const id = exam.body.id as string;
@@ -69,6 +74,12 @@ export async function publishExam(
       .expect(200)
   ).body;
   const done = await ctx.http().post('/payments/verify').set(auth(trainer)).send(paid).expect(200);
+  if (backdate) {
+    await ctx.prisma.exam.update({
+      where: { id },
+      data: { startsAt: new Date(wantStart), endsAt: new Date(wantEnd) },
+    });
+  }
   return {
     examId: id,
     code: done.body.exam.code as string,

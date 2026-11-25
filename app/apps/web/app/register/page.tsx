@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { AudienceSwitch } from '../../components/audience-switch';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { registerSchema } from '@parakh/shared';
@@ -58,7 +57,6 @@ export default function RegisterPage() {
 
   return (
     <Shell auth>
-      <AudienceSwitch active="trainer" />
       <Card
         title="Create a trainer account"
         subtitle="For trainers. Students do not register, they join with an exam code."

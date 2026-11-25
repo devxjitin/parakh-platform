@@ -6640,7 +6640,6 @@ body:has(.app) > .site-footer {
 }
 .cc-box:focus-within {
   border-color: var(--primary, #2152dc);
-  box-shadow: 0 0 0 4px rgba(33, 82, 220, 0.14);
 }
 .cc-ico {
   flex: none;
@@ -7228,4 +7227,551 @@ body:has(.app) > .site-footer {
 .brand-compact .brand-icon,
 .app-collapsed .brand-icon {
   display: block;
+}
+
+/* ================= Join: a full-width, full-height page of its own ================= */
+.join-frame {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f3f6ff 0%, #ffffff 42%);
+}
+.join-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px clamp(20px, 4vw, 56px);
+}
+.join-main {
+  flex: 1;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  align-content: stretch;
+  padding: clamp(16px, 4vh, 48px) clamp(16px, 4vw, 56px) 32px;
+}
+.join-main .card {
+  width: 100%;
+  max-width: 1100px;
+  min-height: min(100%, 640px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: clamp(24px, 4vw, 48px);
+  animation: auth-in 0.28s ease both;
+}
+.join-main .card:has(.join-page) {
+  overflow: hidden;
+}
+.join-main .card h1 {
+  font-size: 2rem;
+  letter-spacing: -0.025em;
+  margin-bottom: 6px;
+}
+.join-main .card > .muted {
+  margin: 0 0 24px;
+}
+.join-main .field input {
+  padding: 13px 16px;
+}
+.join-main .btn,
+.join-main button[type='submit'] {
+  width: 100%;
+  padding: 13px 18px;
+  font-size: 1rem;
+}
+.join-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  padding: 0 16px 24px;
+}
+
+/* Join: two separate cards, custom join (left) and available exams (right) */
+.join-main:has(.join-cards) {
+  align-content: stretch;
+}
+.join-cards {
+  width: 100%;
+  max-width: 1280px;
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: clamp(16px, 2.4vw, 32px);
+  align-items: start;
+}
+.join-cards:not(:has(.join-exams)) {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 620px;
+}
+.join-cards > .card {
+  max-width: none;
+  min-height: 0;
+}
+.exam-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+.exam-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8faff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.exam-tile:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+.exam-tile header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.exam-tile header strong {
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.exam-fee {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #e8eeff;
+  color: #1e40af;
+  font-size: 0.85rem;
+}
+.exam-fee.free {
+  background: #dcfce7;
+  color: #166534;
+}
+.exam-sum {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.exam-topics,
+.exam-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.exam-topics li {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.78rem;
+}
+.exam-meta li {
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: #eceff5;
+  color: #4b5563;
+  font-size: 0.78rem;
+}
+.exam-tile .btn {
+  margin-top: auto;
+}
+@media (max-width: 960px) {
+  .join-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The join page has its own footer, so hide the global one. */
+body:has(.join-frame) > .site-footer,
+body:has(.join-frame) .site-footer {
+  display: none;
+}
+
+/* Desktop: the page itself stays put; only the available-exams list scrolls. */
+@media (min-width: 961px) {
+  .join-frame:has(.join-cards) {
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .join-main:has(.join-cards) {
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 16px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .join-cards {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .join-cards:not(:has(.join-exams)) {
+    height: auto;
+  }
+  .join-cards > .join-exams {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .join-exams .exam-grid {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    align-content: start;
+    padding: 4px 6px 4px 0;
+  }
+}
+
+/* Join page UX pass: tighter cards, no clipped tiles, calmer scroll area */
+.join-cards > .card {
+  padding: clamp(20px, 2.4vw, 32px);
+}
+.join-cards > .card h1 {
+  font-size: 1.6rem;
+}
+.join-cards > .card > .muted {
+  margin: 0 0 18px;
+}
+.join-main .exam-tile .btn {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+}
+.exam-tile {
+  background: #ffffff;
+  gap: 8px;
+  padding: 16px;
+}
+.exam-tile:hover {
+  transform: none;
+  border-color: #93a8f4;
+  box-shadow: 0 4px 14px rgba(33, 82, 220, 0.12);
+}
+.exam-grid {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+@media (min-width: 961px) {
+  .join-cards {
+    align-items: stretch;
+  }
+  .join-cards > .join-exams {
+    background: #f5f7ff;
+  }
+  .join-exams .exam-grid {
+    margin: 0 -8px;
+    padding: 4px 8px 28px;
+    scrollbar-width: thin;
+    scrollbar-color: #c3cde8 transparent;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  }
+  .join-main:has(.join-cards) {
+    padding-bottom: 8px;
+  }
+  /* The code card stays in view while the list scrolls. */
+  .join-cards > .card:not(.join-exams) {
+    align-self: start;
+  }
+}
+.join-foot {
+  padding-top: 8px;
+}
+
+/* The audience switch is made of buttons on the login page */
+button.as-item {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Join: numbered stepper (replaces the plain bars) */
+.stepper {
+  display: flex;
+  list-style: none;
+  margin: 4px 0 22px;
+  padding: 0;
+}
+.stepper li {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.stepper li:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: #e1e6f3;
+}
+.stepper li.on::before,
+.stepper li.done::before {
+  background: var(--primary, #2152dc);
+}
+.stepper-dot {
+  position: relative;
+  z-index: 1;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #7b869f;
+  background: #fff;
+  border: 2px solid #d6dcee;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+.stepper li.on .stepper-dot {
+  color: var(--primary, #2152dc);
+  border-color: var(--primary, #2152dc);
+}
+.stepper li.done .stepper-dot {
+  color: #fff;
+  background: var(--primary, #2152dc);
+  border-color: var(--primary, #2152dc);
+}
+.stepper-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted, #6b7280);
+}
+.stepper li.on .stepper-label {
+  color: var(--text, #111827);
+}
+
+/* ================= Join: exam page (details, your details, payment) ================= */
+.join-main:has(.jx) {
+  align-content: stretch;
+  padding-top: 0;
+  padding-bottom: 20px;
+}
+.jx {
+  width: 100%;
+  max-width: 1500px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+.jx-back {
+  justify-self: start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+}
+.jx-back:hover {
+  color: var(--primary, #2152dc);
+  text-decoration: underline;
+}
+.jx-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(16px, 2.5vw, 36px);
+  align-items: stretch;
+}
+
+/* Left: the exam */
+.jx-hero {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: clamp(20px, 2.6vw, 36px);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.jx-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.jx-head h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.jx-by {
+  margin: 4px 0 0;
+  color: var(--muted, #6b7280);
+}
+.jx-fee {
+  flex: none;
+  text-align: right;
+}
+.jx-fee span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted, #6b7280);
+}
+.jx-fee b {
+  font-size: 1.6rem;
+}
+.jx-desc {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--muted, #4b5563);
+}
+.jx-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.jx-stats > div {
+  padding: 14px 0 14px 16px;
+  border-left: 1px solid var(--border);
+}
+.jx-stats > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.jx-stats dt {
+  font-size: 0.8rem;
+  color: var(--muted, #6b7280);
+}
+.jx-stats dd {
+  margin: 2px 0 0;
+  font-size: 1.3rem;
+  font-weight: 650;
+}
+.jx-facts,
+.jx-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+}
+.jx-facts {
+  color: var(--text, #111827);
+}
+.jx-notes {
+  padding-top: 4px;
+}
+.jx-notes h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+.jx-notes ul {
+  color: var(--muted, #4b5563);
+  font-size: 0.92rem;
+}
+
+/* Right: the steps and payment */
+.join-main .card.jx-panel {
+  max-width: none;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(20px, 3.5vw, 56px);
+  border-radius: 12px;
+  box-shadow: none;
+}
+.jx-panel > * {
+  width: 100%;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.jx-panel h1 {
+  font-size: clamp(1.5rem, 2vw, 1.9rem);
+}
+.jx-panel > .muted {
+  margin-bottom: 16px;
+}
+.jx-panel .join-step h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+.jx-panel .seat-box:not(.ok) {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.join-frame:has(.jx) .join-foot {
+  padding: 4px 16px 14px;
+}
+
+@media (min-width: 881px) {
+  .join-frame:has(.jx) {
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .join-main:has(.jx) {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .jx {
+    height: 100%;
+  }
+}
+@media (min-width: 881px) and (max-height: 860px) {
+  .jx-hero {
+    gap: 14px;
+    padding: 20px 28px;
+  }
+  .join-main .card.jx-panel {
+    padding: 20px 32px;
+  }
+  .stepper {
+    margin-bottom: 12px;
+  }
+  .jx-panel > .muted {
+    margin-bottom: 10px;
+  }
+  .jx-panel .join-step h2 {
+    display: none;
+  }
+}
+@media (min-width: 881px) and (max-height: 720px) {
+  .jx-notes,
+  .join-frame:has(.jx) .join-foot {
+    display: none;
+  }
+  .jx-panel .field input {
+    padding: 9px 14px;
+  }
+}
+@media (max-width: 880px) {
+  .jx {
+    grid-template-rows: auto;
+  }
+  .jx-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

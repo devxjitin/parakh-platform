@@ -35,7 +35,7 @@ export async function createTestApp(): Promise<TestContext> {
     http: () => request(app.getHttpServer()),
     reset: async () => {
       await prisma.$executeRawUnsafe(
-        'TRUNCATE TABLE "PlatformSetting", "AuditLog", "EmailEvent", "LedgerEntry", "Payout", "SeatPack", "Seat", "ProctorEvent", "Answer", "Attempt", "Enrollment", "WebhookEvent", "Payment", "Question", "Exam", "RefreshToken", "EmailOtp", "LoginFailure", "ExaminerProfile", "User" CASCADE',
+        'TRUNCATE TABLE "PlatformSetting", "AuditLog", "EmailEvent", "LedgerEntry", "Payout", "SeatPack", "Seat", "ProctorEvent", "Answer", "Attempt", "Enrollment", "WebhookEvent", "Payment", "Question", "Exam", "ExamCategory", "RefreshToken", "EmailOtp", "LoginFailure", "ExaminerProfile", "User" CASCADE',
       );
       // The suite's money tests were written against these prices, so they are stored explicitly
       // and do not move when the platform's default prices change.

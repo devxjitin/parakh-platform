@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { StudentResultDto } from '@parakh/shared';
+import { REVIEW_PROMISE_HOURS, type StudentResultDto } from '@parakh/shared';
 import { QuestionImage, QuestionText } from '../../components/question-content';
 import {
   Alert,
@@ -30,7 +30,7 @@ export default function ResultPage() {
       .catch((err) =>
         setError(
           err instanceof ApiError && err.status === 409
-            ? 'Your trainer has not published the results yet. Check back later.'
+            ? `Your result is not ready yet. If your exam has written answers, a reviewer is marking them and the result is emailed to you within ${REVIEW_PROMISE_HOURS} hours of submitting.`
             : describeError(err).message,
         ),
       );

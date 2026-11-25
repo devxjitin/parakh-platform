@@ -63,6 +63,7 @@ function navFor(role: string): NavItem[] {
     { href: '/admin/?tab=users', tab: 'users', label: 'Users', icon: 'users' },
     { href: '/admin/?tab=audit', tab: 'audit', label: 'Audit log', icon: 'clock' },
     { href: '/admin/?tab=settings', tab: 'settings', label: 'Settings', icon: 'settings' },
+    { href: '/admin/reviews/', label: 'Reviews', icon: 'check' },
     { href: '/admin/payouts/', label: 'Payouts', icon: 'wallet', group: 'Money' },
     { href: '/admin/payments/', label: 'Payments', icon: 'card' },
     { href: '/admin/certificates/', label: 'Certificates', icon: 'award' },
@@ -85,6 +86,7 @@ const CRUMBS: Record<string, string> = {
   payments: 'Payments',
   earnings: 'Earnings',
   certificates: 'Certificates',
+  reviews: 'Reviews',
   verify: 'Verify',
 };
 

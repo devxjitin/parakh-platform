@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { ExamDetailDto } from '@parakh/shared';
 import { ExamSettingsForm, type ExamSettingsValues } from '../../../components/exam-settings-form';
 import { ExamStepper, PAPER_STEPS } from '../../../components/exam-stepper';
-import { Alert, PageHeader, Shell, describeError } from '../../../components/ui';
+import { Alert, PageHeader, Shell, describeError, useQueryParam } from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { useRequireAuth } from '../../../lib/auth';
 
@@ -18,6 +18,9 @@ export default function NewExamPage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // An admin chooses the type up front: /exams/new/?kind=always-open for an always-open exam.
+  const kind = useQueryParam('kind');
+  const alwaysOpen = user?.role === 'ADMIN' && kind === 'always-open';
 
   if (loading || !user) {
     return (
@@ -51,8 +54,12 @@ export default function NewExamPage() {
   return (
     <Shell wide>
       <PageHeader
-        title="New exam"
-        subtitle="Start with the basics. The rest follows step by step: certificate, paper plan, questions and publish (trainers also add a logo and choose who pays)."
+        title={alwaysOpen ? 'New always-open exam' : 'New exam'}
+        subtitle={
+          alwaysOpen
+            ? 'An exam that is always open: no schedule, students pay and start any time, one attempt per payment. Start with the basics; the paper, certificate and listing follow.'
+            : 'Start with the basics. The rest follows step by step: certificate, paper plan, questions and publish (trainers also add a logo and choose who pays).'
+        }
       >
         <Link className="btn btn-secondary btn-link" href="/exams/">
           Back to your exams
@@ -71,7 +78,9 @@ export default function NewExamPage() {
 
       {error && <Alert>{error}</Alert>}
       <ExamSettingsForm
+        key={alwaysOpen ? 'always-open' : 'scheduled'}
         nandivex={user.role === 'ADMIN'}
+        alwaysOpenMode={alwaysOpen}
         submitLabel={
           busy ? 'Creating…' : user.role === 'ADMIN' ? 'Next: certificate' : 'Next: add your logo'
         }

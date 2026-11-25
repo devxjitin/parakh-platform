@@ -43,7 +43,7 @@ export interface MyReceiptDto extends MyPaymentDto {
   payerEmail: string;
   /** The payment gateway's reference, for the user's own bank query. */
   gatewayReference: string | null;
-  /** Shown on the receipt until a GST invoice is available. */
+  /** Shown on the receipt: NandiVex is not GST-registered, so this is not a tax invoice. */
   note: string;
 }
 

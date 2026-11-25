@@ -115,7 +115,7 @@ describe('certificate PDF retry', () => {
 });
 
 describe('payment after the window passed', () => {
-  it('still publishes, but emails the trainer that the closing time has passed', async () => {
+  it('does not publish, flags the payment for refund and emails the trainer', async () => {
     const fresh = await publishExam(ctx, trainer, {});
     const draft = (
       await post(trainer, '/exams', {
@@ -144,13 +144,13 @@ describe('payment after the window passed', () => {
     ).body;
     ctx.mail.clear();
     await ctx.http().post('/payments/verify').set(auth(trainer)).send(paid).expect(200);
-    expect((await ctx.prisma.exam.findUnique({ where: { id: draft.id } }))?.status).toBe(
-      'PUBLISHED',
-    );
-    expect(ctx.mail.lastTo('trainer@example.com')).toBeDefined();
+    expect((await ctx.prisma.exam.findUnique({ where: { id: draft.id } }))?.status).toBe('DRAFT');
     expect(
-      ctx.mail.outbox.some((m) => /closing time of .* has already passed/.test(m.subject)),
+      (await ctx.prisma.payment.findFirstOrThrow({ where: { examId: draft.id } })).needsRefund,
     ).toBe(true);
+    expect(ctx.mail.outbox.some((m) => /was not published: its closing time/.test(m.subject))).toBe(
+      true,
+    );
     expect(fresh.examId).toBeTruthy();
   });
 });

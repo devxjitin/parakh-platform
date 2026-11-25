@@ -75,7 +75,8 @@ export function CertificatePanel({
   );
 
   // Saved when the trainer presses Next (there is no Save button).
-  const locked = info?.finalized ?? false;
+  // Once the exam is published nothing about its certificates can change.
+  const locked = exam.status !== 'DRAFT';
   useStepSave(registerSave, async () => {
     if (!tpl || locked) return null;
     if (JSON.stringify(tpl) === lastSaved.current) return null;
@@ -105,7 +106,7 @@ export function CertificatePanel({
       {error && <Alert>{error}</Alert>}
       {locked ? (
         <Alert kind="info">
-          Results are published, so the design is locked.{' '}
+          This exam is published, so the certificate settings are locked.{' '}
           {info.total === 0
             ? 'No certificates were made for this exam.'
             : `${info.total} certificates: ${info.issued} issued and emailed${info.waiting ? `, ${info.waiting} waiting` : ''}${info.rejected ? `, ${info.rejected} not issued` : ''}.`}

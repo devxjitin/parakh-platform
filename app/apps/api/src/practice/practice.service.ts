@@ -41,7 +41,9 @@ export class PracticeService {
     @Inject(STORAGE) private readonly storage: Storage,
   ) {}
 
-  private isOver(exam: Pick<Exam, 'status' | 'endsAt'>): boolean {
+  private isOver(exam: Pick<Exam, 'status' | 'endsAt' | 'alwaysOpen'>): boolean {
+    // An always-open exam never closes: it is the practice, so there is no after-exam practice set.
+    if (exam.alwaysOpen) return false;
     if (OVER.includes(exam.status)) return true;
     return (
       exam.status === 'PUBLISHED' && exam.endsAt !== null && exam.endsAt.getTime() <= Date.now()

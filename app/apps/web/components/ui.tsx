@@ -33,11 +33,14 @@ export function Shell({
   wide,
   full,
   auth,
+  join,
 }: {
   children: React.ReactNode;
   wide?: boolean;
   /** Use the same split-screen frame as sign-in, so moving between the two is seamless. */
   auth?: boolean;
+  /** The student join page: a full-width page of its own, with no side panel. */
+  join?: boolean;
   /** Student pages that use the whole screen width and height instead of a narrow centred column. */
   full?: boolean;
 }) {
@@ -45,6 +48,7 @@ export function Shell({
   const { user } = useAuth();
   // Students have no portal: the join and practice pages (and anything a student sees) are a bare
   // page with the brand on top, never the app shell with its sidebar.
+  if (join) return <JoinFrame>{children}</JoinFrame>;
   if (auth) return <AuthShell>{children}</AuthShell>;
   const studentPage = STUDENT_PATHS.includes(pathname) || user?.role === 'STUDENT';
   if (studentPage && (!user || user.role === 'STUDENT' || STUDENT_PATHS.includes(pathname))) {
@@ -142,6 +146,32 @@ const AUTH_POINTS: { icon: IconName; title: string; text: string }[] = [
   },
 ];
 
+/**
+ * The student join page: a full-width, full-height page of its own, with no side panel. Just the
+ * brand on top and the form centred below.
+ */
+function JoinFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="join-frame">
+      <header className="join-top">
+        <Brand />
+        <span className="spacer" />
+        <Link href="/login/" className="btn btn-ghost btn-small btn-link">
+          Trainer sign in
+        </Link>
+        <a href={WEBSITE_URL} className="btn btn-secondary btn-small btn-link">
+          Back to home
+        </a>
+      </header>
+      <main className="join-main">{children}</main>
+      <footer className="join-foot">
+        <SiteLinks />
+        <span>&copy; NandiVex Technologies</span>
+      </footer>
+    </div>
+  );
+}
+
 /** Split layout for sign-in, sign-up and password pages: brand panel on the left, form on the right. */
 function AuthShell({ children }: { children: React.ReactNode }) {
   return (
@@ -165,6 +195,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
             ))}
           </ul>
         </div>
+
         <div className="auth-preview" aria-hidden="true">
           <div className="auth-preview-head">
             <b>Cloud Fundamentals</b>
@@ -182,8 +213,8 @@ function AuthShell({ children }: { children: React.ReactNode }) {
             <span>0 of 3</span>
           </div>
         </div>
-        <a className="auth-by" href="https://nandivex.in" target="_blank" rel="noreferrer">
-          A product of NandiVex Technologies, nandivex.in
+        <a className="auth-by" href="https://nandivex.com" target="_blank" rel="noreferrer">
+          A product of NandiVex Technologies, nandivex.com
         </a>
       </aside>
       <div className="auth-main">

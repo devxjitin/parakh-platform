@@ -1,7 +1,7 @@
 /**
  * Creates (or promotes) the first NandiVex admin. Admins cannot self-register.
  *
- *   ADMIN_EMAIL=you@nandivex.in ADMIN_PASSWORD='...' ADMIN_NAME='Your Name' npm run seed:admin -w @parakh/api
+ *   ADMIN_EMAIL=you@nandivex.com ADMIN_PASSWORD='...' ADMIN_NAME='Your Name' npm run seed:admin -w @parakh/api
  */
 import { PrismaClient } from '@prisma/client';
 import { Algorithm, hash } from '@node-rs/argon2';

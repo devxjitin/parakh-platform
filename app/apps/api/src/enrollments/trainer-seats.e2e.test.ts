@@ -24,7 +24,7 @@ async function draftExam() {
       .http()
       .post('/exams')
       .set(auth(trainer))
-      .send({ title: 'Seat Exam', durationMinutes: 30, startsAt: hours(-1), endsAt: hours(3) })
+      .send({ title: 'Seat Exam', durationMinutes: 30, startsAt: hours(1), endsAt: hours(5) })
       .expect(201)
   ).body;
   await ctx

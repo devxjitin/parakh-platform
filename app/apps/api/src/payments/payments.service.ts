@@ -24,7 +24,7 @@ import {
   type VerifyPaymentInput,
 } from '@parakh/shared';
 import { ENV, Env } from '../config/env';
-import { computeJoinState, examJoinFee, normalizeCode } from '../enrollments/join-state';
+import { canRetake, computeJoinState, examJoinFee, normalizeCode } from '../enrollments/join-state';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../common/decorators';
 import { CertificatesService } from '../certificates/certificates.service';
@@ -50,6 +50,9 @@ export function generateExamCode(): string {
 }
 
 const UUID = /^[0-9a-f-]{36}$/i;
+
+const STARTED_NO_REFUND =
+  'This student has already started the exam, so the seat cannot be cancelled';
 
 @Injectable()
 export class PaymentsService {
@@ -94,14 +97,15 @@ export class PaymentsService {
     const fees = await this.settings.get();
     // Trainer-pays mode: each listed email is one seat, bought together with the publish fee.
     // No email, no seat, so the list is de-duplicated and fixed for good once published.
-    const emails = [...new Set((input.studentEmails ?? []).map((e) => e.trim().toLowerCase()))];
+    const emails = [
+      ...new Set((input.studentEmails ?? []).map((e) => e.trim().toLowerCase())),
+    ].sort();
     const ownEmail = (await this.prisma.user.findUnique({ where: { id: user.id } }))?.email;
     if (ownEmail && emails.includes(ownEmail)) {
       throw new BadRequestException('Remove your own email from the student list');
     }
     const joinFee = examJoinFee(exam, fees.examJoinPaise);
     const totalPaise = fees.examCreationPaise + emails.length * joinFee;
-    await this.prisma.exam.update({ where: { id: exam.id }, data: { sponsoredEmails: emails } });
     // An unpaid order made at an old price or for another seat count is not reused.
     const existing = await this.prisma.payment.findFirst({
       where: {
@@ -111,6 +115,7 @@ export class PaymentsService {
         provider: this.provider.name,
         amountPaise: totalPaise,
         quantity: Math.max(emails.length, 1),
+        sponsoredEmails: { equals: emails },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -133,6 +138,7 @@ export class PaymentsService {
           purpose: 'EXAM_CREATION',
           amountPaise: totalPaise,
           quantity: Math.max(emails.length, 1),
+          sponsoredEmails: emails,
           currency: PRICING.CURRENCY,
           provider: this.provider.name,
           providerOrderId: orderId,
@@ -161,13 +167,33 @@ export class PaymentsService {
     startsAt: Date | null;
     endsAt: Date | null;
     durationMinutes: number;
+    alwaysOpen?: boolean;
+    catalogSummary?: string | null;
+    catalogTopics?: string[];
+    catalogCategory?: string;
     _count: { questions: number };
   }): void {
     const problems: string[] = [];
     if (exam._count.questions < 1) problems.push('Add at least one question.');
-    if (!exam.startsAt || !exam.endsAt) {
+    if (exam.alwaysOpen) {
+      // No window to check: students start any time after paying. It is listed publicly, so the
+      // list card needs its summary and topics.
+      if (!exam.catalogSummary?.trim() || !exam.catalogTopics?.length) {
+        problems.push('Add the summary and topics for the exam list (Basics step).');
+      }
+      if (!exam.catalogCategory?.trim()) {
+        problems.push('Choose the category this exam belongs to (Basics step).');
+      }
+    } else if (!exam.startsAt || !exam.endsAt) {
       problems.push('Set when the exam opens and closes (Settings tab).');
     } else {
+      // The start is checked now, at publish time: a draft can sit for a while and the time chosen
+      // earlier may have passed in the meantime.
+      if (exam.startsAt <= new Date()) {
+        problems.push(
+          'The start time has already passed. Set a start time in the future (Settings tab).',
+        );
+      }
       if (exam.endsAt <= new Date()) problems.push('The closing time must be in the future.');
       const windowMinutes = (exam.endsAt.getTime() - exam.startsAt.getTime()) / 60000;
       if (windowMinutes < exam.durationMinutes) {
@@ -443,7 +469,7 @@ export class PaymentsService {
                   payment.amountPaise,
                   result.exam.examinerId,
                   result.exam.id,
-                  (await this.settings.get()).examinerSharePercent,
+                  payment.examinerSharePercent ?? (await this.settings.get()).examinerSharePercent,
                 )
               : platformFeeLines(payment.amountPaise, payment.examId, 'NO_SEAT_REFUND_DUE');
         await this.ledger.post(tx, lines, { type: 'CREDIT', paymentId: payment.id });
@@ -463,7 +489,17 @@ export class PaymentsService {
       });
       if (!payment.examId) return { exam: null };
       const exam = await tx.exam.findUnique({ where: { id: payment.examId } });
-      if (!exam || exam.status !== 'DRAFT') return { exam: exam ?? null };
+      if (!exam) return { exam: null };
+      // Another creation payment already published this exam: this one bought nothing.
+      if (exam.status !== 'DRAFT') return { exam, skipped: 'DUPLICATE_PUBLISH' as const };
+      // A payment that lands after the window closed must not publish an exam nobody can join.
+      if (!exam.alwaysOpen && (!exam.endsAt || exam.endsAt <= new Date())) {
+        return { exam, skipped: 'WINDOW_PASSED' as const };
+      }
+      const sponsored = payment.sponsoredEmails;
+      if (sponsored.length > 0 && sponsored.length !== payment.quantity) {
+        throw new Error(`Payment ${payment.id} seat list does not match the quantity paid for`);
+      }
 
       let code = generateExamCode();
       for (let i = 0; i < 5 && (await tx.exam.findUnique({ where: { code } })); i++) {
@@ -471,19 +507,19 @@ export class PaymentsService {
       }
       const updated = await tx.exam.update({
         where: { id: exam.id },
-        data: { status: 'PUBLISHED', code, publishedAt: new Date() },
+        data: { status: 'PUBLISHED', code, publishedAt: new Date(), sponsoredEmails: sponsored },
       });
-      if (updated.sponsoredEmails.length > 0) {
+      if (sponsored.length > 0) {
         const pack = await tx.seatPack.create({
           data: {
             examId: exam.id,
             sponsorId: payment.userId,
             paymentId: payment.id,
-            seats: updated.sponsoredEmails.length,
+            seats: sponsored.length,
           },
         });
         await tx.seat.createMany({
-          data: updated.sponsoredEmails.map((email) => ({
+          data: sponsored.map((email) => ({
             packId: pack.id,
             token: seatToken(),
             email,
@@ -520,14 +556,19 @@ export class PaymentsService {
       } else if (!published.exam) {
         // Paid, but the exam was deleted meanwhile: flag for a manual refund.
         await this.flagOrphan(payment.id);
+      } else if ('skipped' in published && published.skipped) {
+        // Paid, but nothing was published (duplicate payment, or the window closed meanwhile).
+        await this.flagOrphan(payment.id, published.skipped);
+        if (published.skipped === 'WINDOW_PASSED') {
+          const trainer = await this.prisma.user.findUnique({ where: { id: payment.userId } });
+          if (trainer && published.exam) {
+            await this.mail.sendWindowPassed(trainer.email, trainer.name, {
+              examTitle: published.exam.title,
+            });
+          }
+        }
       } else if (published.exam.code) {
         const user = await this.prisma.user.findUnique({ where: { id: payment.userId } });
-        if (user && published.exam.endsAt && published.exam.endsAt <= new Date()) {
-          // Published, but the window is already over: tell the trainer to extend it.
-          await this.mail.sendWindowPassed(user.email, user.name, {
-            examTitle: published.exam.title,
-          });
-        }
         if (user && published.exam.sponsoredEmails.length > 0) {
           // The trainer listed these students: each gets the code, the marks and the join link.
           // The email never says who paid, and mentions certificates only when they are on.
@@ -565,6 +606,21 @@ export class PaymentsService {
     return fresh;
   }
 
+  /** The seat a student holds now for an exam (a retired seat from an earlier round is ignored). */
+  private liveSeat(
+    client: Pick<Prisma.TransactionClient, 'enrollment'>,
+    examId: string,
+    studentId: string,
+  ) {
+    return client.enrollment.findFirst({
+      where: { examId, studentId, supersededAt: null },
+      include: {
+        exam: { select: { alwaysOpen: true } },
+        attempt: { select: { status: true, resultEmailedAt: true } },
+      },
+    });
+  }
+
   // ------------------------------------------------------------ join (students)
 
   /** Starts (or resumes) the join-fee payment for a published exam. */
@@ -573,13 +629,11 @@ export class PaymentsService {
       where: { code: normalizeCode(rawCode) },
     });
     if (!exam || exam.status !== 'PUBLISHED') throw new NotFoundException('Exam code not found');
-    const enrolled = await this.prisma.enrollment.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId: user.id } },
-    });
+    const enrolled = await this.liveSeat(this.prisma, exam.id, user.id);
     const state = computeJoinState({
       startsAt: exam.startsAt,
       endsAt: exam.endsAt,
-      alreadyEnrolled: Boolean(enrolled),
+      alreadyEnrolled: Boolean(enrolled && !canRetake(enrolled)),
     });
     if (state === 'ALREADY_ENROLLED')
       throw new ConflictException('You have already joined this exam');
@@ -590,7 +644,8 @@ export class PaymentsService {
         'The trainer has paid for this exam. Join with the email the trainer invited, no payment needed.',
       );
     }
-    const feePaise = examJoinFee(exam, (await this.settings.get()).examJoinPaise);
+    const priceSettings = await this.settings.get();
+    const feePaise = examJoinFee(exam, priceSettings.examJoinPaise);
     if (feePaise === 0) {
       throw new ConflictException('This exam is free. Join it without paying.');
     }
@@ -619,6 +674,7 @@ export class PaymentsService {
           examId: exam.id,
           purpose: 'EXAM_JOIN',
           amountPaise: feePaise,
+          examinerSharePercent: priceSettings.examinerSharePercent,
           currency: PRICING.CURRENCY,
           provider: this.provider.name,
           providerOrderId: orderId,
@@ -656,10 +712,8 @@ export class PaymentsService {
       alreadyEnrolled: false,
     });
     if (state === 'ENDED') throw new ConflictException('This exam has ended');
-    const existing = await this.prisma.enrollment.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId: user.id } },
-    });
-    if (existing) return { enrollmentId: existing.id };
+    const existing = await this.liveSeat(this.prisma, exam.id, user.id);
+    if (existing && !canRetake(existing)) return { enrollmentId: existing.id };
     // Trainer-pays exam: only an invited email has a seat, and a seat is used once.
     const seat = sponsored
       ? await this.prisma.seat.findFirst({
@@ -685,6 +739,13 @@ export class PaymentsService {
           });
           if (claimed.count === 0) throw new ConflictException('This seat has just been used');
         }
+        // Taking the exam again: the finished seat stays as history, the new one goes live.
+        if (existing) {
+          await tx.enrollment.update({
+            where: { id: existing.id },
+            data: { supersededAt: new Date() },
+          });
+        }
         const created = await tx.enrollment.create({
           data: { examId: exam.id, studentId: user.id, seatId: seat?.id ?? null },
         });
@@ -695,10 +756,8 @@ export class PaymentsService {
     } catch (err) {
       // Two clicks at once: the other request already took the seat.
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        const again = await this.prisma.enrollment.findUniqueOrThrow({
-          where: { examId_studentId: { examId: exam.id, studentId: user.id } },
-        });
-        return { enrollmentId: again.id };
+        const again = await this.liveSeat(this.prisma, exam.id, user.id);
+        if (again) return { enrollmentId: again.id };
       }
       throw err;
     }
@@ -776,9 +835,7 @@ export class PaymentsService {
       throw new ConflictException('Exam creation fees are not refunded here');
     }
     if (payment.enrollment?.attempt) {
-      throw new ConflictException(
-        'This student has already started the exam, so the seat cannot be cancelled',
-      );
+      throw new ConflictException(STARTED_NO_REFUND);
     }
     if (payment.seatPack?.items.some((i) => i.redeemedAt)) {
       throw new ConflictException(
@@ -789,11 +846,21 @@ export class PaymentsService {
     // Claim first so two admins cannot refund the same payment twice. The payment stays
     // PENDING_REFUND until the gateway AND the ledger are both done; refundedAt doubles as the
     // time of the last attempt, which the refund sweeper uses to pick up stuck ones.
-    const claimed = await this.prisma.payment.updateMany({
-      where: { id: payment.id, status: 'CAPTURED' },
-      data: { status: 'PENDING_REFUND', refundedAt: new Date(), refundReason: reason },
+    // The claim and the "has the student started?" check run in one transaction: starting an
+    // attempt locks this same payment row, so one of the two always sees the other.
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const res = await tx.payment.updateMany({
+        where: { id: payment.id, status: 'CAPTURED' },
+        data: { status: 'PENDING_REFUND', refundedAt: new Date(), refundReason: reason },
+      });
+      if (res.count === 0) return 'ALREADY' as const;
+      const started = payment.enrollment
+        ? await tx.attempt.findUnique({ where: { enrollmentId: payment.enrollment.id } })
+        : null;
+      if (started) throw new ConflictException(STARTED_NO_REFUND);
+      return 'CLAIMED' as const;
     });
-    if (claimed.count === 0) throw new ConflictException('This payment is already refunded');
+    if (claimed === 'ALREADY') throw new ConflictException('This payment is already refunded');
 
     let refundId: string;
     try {
@@ -877,7 +944,21 @@ export class PaymentsService {
         ),
         { type: 'REFUND', paymentId: payment.id },
       );
-      if (payment.enrollment) await tx.enrollment.delete({ where: { id: payment.enrollment.id } });
+      if (payment.enrollment) {
+        // A seat that somehow has an attempt is retired, never deleted (the attempt keeps it alive).
+        const hasAttempt = await tx.attempt.findUnique({
+          where: { enrollmentId: payment.enrollment.id },
+          select: { id: true },
+        });
+        if (hasAttempt) {
+          await tx.enrollment.update({
+            where: { id: payment.enrollment.id },
+            data: { supersededAt: new Date() },
+          });
+        } else {
+          await tx.enrollment.delete({ where: { id: payment.enrollment.id } });
+        }
+      }
       if (payment.seatPack) await tx.seatPack.delete({ where: { id: payment.seatPack.id } });
       return true;
     });
@@ -982,10 +1063,12 @@ export class PaymentsService {
     if (!exam || exam.status !== 'PUBLISHED' || (exam.endsAt && exam.endsAt <= new Date())) {
       return { exam, enrollment: null, reason: 'EXAM_UNAVAILABLE' };
     }
-    const already = await tx.enrollment.findUnique({
-      where: { examId_studentId: { examId: exam.id, studentId: payment.userId } },
-    });
-    if (already) return { exam, enrollment: null, reason: 'DUPLICATE' };
+    const already = await this.liveSeat(tx, exam.id, payment.userId);
+    if (already && !canRetake(already)) return { exam, enrollment: null, reason: 'DUPLICATE' };
+    // Taking the exam again: the finished seat stays as history, the new one goes live.
+    if (already) {
+      await tx.enrollment.update({ where: { id: already.id }, data: { supersededAt: new Date() } });
+    }
     const enrollment = await tx.enrollment.create({
       data: { examId: exam.id, studentId: payment.userId, paymentId: payment.id },
     });

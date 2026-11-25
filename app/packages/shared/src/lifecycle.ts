@@ -23,10 +23,26 @@ export const cancelExamSchema = z.object({
 });
 export type CancelExamInput = z.infer<typeof cancelExamSchema>;
 
+export const rescheduleExamSchema = z.object({
+  startsAt: z.string().datetime({ message: 'Enter a valid opening date and time' }),
+  /** Leave out to close when the exam time is up (start plus duration). */
+  endsAt: z.string().datetime({ message: 'Enter a valid closing date and time' }).nullish(),
+});
+export type RescheduleExamInput = z.infer<typeof rescheduleExamSchema>;
+
+export interface RescheduleExamResultDto {
+  startsAt: string;
+  endsAt: string;
+  /** Students who had joined and were emailed the new time. */
+  notified: number;
+}
+
 export interface CancelExamResultDto {
   status: 'CANCELLED';
-  /** Students who had paid for a seat. Fees are not refunded when an exam is cancelled. */
+  /** Students who had a seat. */
   students: number;
+  /** Students who had paid and not started: their fee is being refunded automatically. */
+  refunding: number;
 }
 
 export interface CloseExamResultDto {

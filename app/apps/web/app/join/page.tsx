@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Icon } from '../../components/icons';
 import { Brand } from '../../components/app-shell';
-import { AudienceSwitch } from '../../components/audience-switch';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AttemptDto,
@@ -22,25 +22,28 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 'no
 
 type Step = 'code' | 'details' | 'otp' | 'seat';
 
-const STEP_LABELS: [Step, string][] = [
-  ['code', 'Exam code'],
-  ['details', 'Your details'],
-  ['otp', 'Email code'],
-  ['seat', 'Fee and start'],
-];
-
-function StepDots({ step }: { step: Step }) {
-  const at = STEP_LABELS.findIndex(([x]) => x === step);
+/** The exam is already chosen on this page, so the steps are only the three that remain. */
+function StepDots({ step, paid }: { step: Step; paid: boolean }) {
+  const steps: [Step, string][] = [
+    ['details', 'Your details'],
+    ['otp', 'Verify email'],
+    ['seat', paid ? 'Pay and join' : 'Join'],
+  ];
+  const at = Math.max(
+    0,
+    steps.findIndex(([x]) => x === step),
+  );
   return (
-    <div
-      className="step-dots"
-      role="img"
-      aria-label={`Step ${at + 1} of ${STEP_LABELS.length}: ${STEP_LABELS[at]?.[1] ?? ''}`}
-    >
-      {STEP_LABELS.map(([x], i) => (
-        <i key={x} className={i === at ? 'on' : i < at ? 'done' : ''} />
+    <ol className="stepper" aria-label={`Step ${at + 1} of ${steps.length}: ${steps[at]?.[1]}`}>
+      {steps.map(([x, label], i) => (
+        <li key={x} className={i === at ? 'on' : i < at ? 'done' : ''}>
+          <span className="stepper-dot" aria-hidden="true">
+            {i < at ? <Icon name="check" size={14} /> : i + 1}
+          </span>
+          <span className="stepper-label">{label}</span>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -57,25 +60,31 @@ const whenShort = (iso: string | null) =>
       })
     : 'Not set';
 
-function JoinSummary({ info, ended }: { info: JoinInfoDto; ended: boolean }) {
+function JoinHero({ info }: { info: JoinInfoDto }) {
   const by = `${info.trainerName}${info.orgName ? `, ${info.orgName}` : ''}`;
   const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+  const free = info.feePaise === 0;
+  const notes = [
+    'The timer runs on our server and keeps counting if you leave or refresh.',
+    'Switching tabs or windows during the exam may be recorded.',
+    'Your score, answer key and certificate are emailed after you submit.',
+  ];
   return (
-    <div className="join-summary">
-      <div className="js-top">
-        <span className="js-avatar" aria-hidden="true">
-          {info.title.trim().charAt(0).toUpperCase() || 'E'}
-        </span>
-        <div className="js-title">
+    <aside className="jx-hero">
+      <div className="jx-head">
+        <div>
           <h2>{info.title}</h2>
-          <p>By {by}</p>
+          {/* An always-open exam is NandiVex's own, so only its title is shown. */}
+          {!info.alwaysOpen && <p className="jx-by">By {by}</p>}
         </div>
-        <span className={`js-fee${info.feePaise === 0 ? ' free' : ''}`}>
-          {info.feePaise === 0 ? 'Free' : rupees(info.feePaise)}
-        </span>
+        <div className="jx-fee">
+          <span>Exam fee</span>
+          <b>{free ? 'Free' : rupees(info.feePaise)}</b>
+        </div>
       </div>
-      {info.description && <p className="js-desc">{info.description}</p>}
-      <dl className="js-stats">
+      {!info.alwaysOpen && info.description && <p className="jx-desc">{info.description}</p>}
+
+      <dl className="jx-stats">
         <div>
           <dt>{plural(info.questionCount, 'Question', 'Questions')}</dt>
           <dd>{info.questionCount}</dd>
@@ -86,25 +95,34 @@ function JoinSummary({ info, ended }: { info: JoinInfoDto; ended: boolean }) {
         </div>
         <div>
           <dt>Duration</dt>
-          <dd>
-            {info.durationMinutes}
-            <small> min</small>
-          </dd>
+          <dd>{info.durationMinutes} min</dd>
         </div>
       </dl>
-      <div className="js-when">
-        <div>
-          <span>Opens</span>
-          <b>{whenShort(info.startsAt)}</b>
-        </div>
-        <i aria-hidden="true" />
-        <div>
-          <span>Closes</span>
-          <b>{whenShort(info.endsAt)}</b>
-        </div>
+
+      <ul className="jx-facts">
+        {info.alwaysOpen ? (
+          <li>Open any time. Start whenever you are ready after you join.</li>
+        ) : (
+          <>
+            <li>Opens {whenShort(info.startsAt)}</li>
+            <li>Closes {whenShort(info.endsAt)}</li>
+          </>
+        )}
+        {info.sponsored && <li>Your trainer has paid for your seat.</li>}
+        {info.hasWrittenQuestions && (
+          <li>Has written answers, so the result comes by email after review.</li>
+        )}
+      </ul>
+
+      <div className="jx-notes">
+        <h3>Before you begin</h3>
+        <ul>
+          {notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
       </div>
-      {ended && <Alert>This exam has ended and can no longer be joined.</Alert>}
-    </div>
+    </aside>
   );
 }
 
@@ -279,10 +297,12 @@ function WaitingRoom({
               <dt>Duration</dt>
               <dd>{info.durationMinutes} min</dd>
             </div>
-            <div>
-              <dt>Closes</dt>
-              <dd>{when(info.endsAt)}</dd>
-            </div>
+            {!info.alwaysOpen && (
+              <div>
+                <dt>Closes</dt>
+                <dd>{when(info.endsAt)}</dd>
+              </div>
+            )}
           </dl>
         </div>
         <div className="wr-panel">
@@ -313,6 +333,13 @@ const ended0 = (i: JoinInfoDto | null) => i?.state === 'ENDED';
 export default function JoinPage() {
   const auth = useAuth();
   const queryCode = useQueryParam('code');
+  const router = useRouter();
+  // No code in the link: codes are entered on the sign-in page.
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).get('code')) {
+      router.replace('/login/?tab=exam');
+    }
+  }, [router]);
   const [step, setStep] = useState<Step>('code');
   // Which way the page turns: forward through the steps, or back.
   const lastStep = useRef<Step>('code');
@@ -321,7 +348,6 @@ export default function JoinPage() {
   useEffect(() => {
     lastStep.current = step;
   }, [step]);
-  const [code, setCode] = useState('');
   const [info, setInfo] = useState<JoinInfoDto | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -341,7 +367,9 @@ export default function JoinPage() {
 
   /** After the email is proven: find this student's seat, if they already have one. */
   const loadSeat = useCallback(async (examCode: string) => {
-    setSeat(await api<EnrollmentDto | null>(`/join/${encodeURIComponent(examCode)}/mine`));
+    const mine = await api<EnrollmentDto | null>(`/join/${encodeURIComponent(examCode)}/mine`);
+    // Result already emailed: this is a fresh join, so there is no seat to show.
+    setSeat(mine?.canRetake ? null : mine);
     setStep('seat');
   }, []);
 
@@ -355,7 +383,6 @@ export default function JoinPage() {
         auth: false,
       });
       setInfo(found);
-      setCode(found.code);
       try {
         window.history.replaceState(null, '', `/join/?code=${encodeURIComponent(found.code)}`);
       } catch {
@@ -380,20 +407,11 @@ export default function JoinPage() {
     opened.current = true;
     void lookup(queryCode).then(async (found) => {
       if (!found) return;
-      if (student) {
-        // Already verified on this device: no need to type the email and code again.
-        setName(student.name);
-        setEmail(student.email);
-        try {
-          await loadSeat(found.code);
-          return;
-        } catch {
-          // fall through to the normal steps
-        }
-      }
+      // A saved session is never used here: every visit starts with email, code and payment.
+      if (student) await auth.logout().catch(() => undefined);
       setStep('details');
     });
-  }, [queryCode, auth.loading, student, lookup, loadSeat]);
+  }, [queryCode, auth.loading, student, lookup, auth]);
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -516,10 +534,19 @@ export default function JoinPage() {
     }
   }
 
+  // The exam is open and the seat is ready: go straight in. The waiting room is only for an exam
+  // whose start time has not come yet.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current || step !== 'seat' || !seat?.canStart) return;
+    autoStarted.current = true;
+    void begin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, seat]);
+
   if (auth.loading) {
     return (
-      <Shell auth>
-        <AudienceSwitch active="join" />
+      <Shell join>
         <Card title="Join an exam">
           <p className="muted">Loading…</p>
         </Card>
@@ -528,8 +555,7 @@ export default function JoinPage() {
   }
   if (auth.user && auth.user.role !== 'STUDENT') {
     return (
-      <Shell auth>
-        <AudienceSwitch active="join" />
+      <Shell join>
         <Alert>
           You are signed in as a{' '}
           {auth.user.role === 'ADMIN' ? 'NandiVex Technologies admin' : 'trainer'}. Sign out to join
@@ -541,198 +567,198 @@ export default function JoinPage() {
 
   const ended = info?.state === 'ENDED';
 
-  if (!waiting) {
+  // Entering a code happens on the sign-in page. This page only opens an exam from a link or code.
+  if (!waiting && step === 'code') {
     return (
-      <Shell auth>
-        <AudienceSwitch active="join" />
-        <Card title="Join an exam" subtitle="No account needed. Just your name and email.">
-          <StepDots step={step} />
-          {error && <Alert>{error}</Alert>}
-          {note && <Alert kind="info">{note}</Alert>}
-          <div key={step} className={`join-page ${going}`}>
-            {info && step !== 'code' && <JoinSummary info={info} ended={ended} />}
-            {step === 'code' && (
+      <Shell join>
+        <div className="join-cards">
+          <Card
+            title={error ? 'Exam not found' : 'Opening your exam'}
+            subtitle={error ? undefined : 'Please wait a moment.'}
+          >
+            {error && (
               <>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (await lookup(code)) setStep('details');
-                  }}
-                >
-                  <label className="field">
-                    <span>
-                      Exam code
-                      <Req />
-                    </span>
-                    <input
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder="NVX-XXXXXX"
-                      autoCapitalize="characters"
-                      autoComplete="off"
-                    />
-                  </label>
-                  <Button type="submit" loading={busy} disabled={!code.trim()}>
-                    Find exam
-                  </Button>
-                </form>
-                <p className="muted" style={{ marginTop: 16 }}>
-                  Already took an exam? Open your practice page with the code we emailed you:{' '}
-                  <Link href="/practice/">Practice</Link>.
-                </p>
-                <details className="join-how-box">
-                  <summary>How joining works</summary>
-                  <ol className="join-how">
-                    <li>Enter the exam code your trainer shared.</li>
-                    <li>Give your name and email, then enter the 6-digit code we send.</li>
-                    <li>Pay the fee (if any) and wait on the countdown screen.</li>
-                    <li>The exam starts by itself at the scheduled time.</li>
-                    <li>Your score, answer key and certificate are emailed after you submit.</li>
-                  </ol>
-                </details>
+                <Alert>{error}</Alert>
+                <Link className="btn btn-primary btn-link" href="/login/?tab=exam">
+                  Try another code
+                </Link>
               </>
             )}
+          </Card>
+        </div>
+      </Shell>
+    );
+  }
 
-            {info && !ended && step === 'details' && (
-              <div className="join-step">
-                <h2 style={{ marginTop: 0 }}>Your details</h2>
-                <form onSubmit={sendCode}>
-                  <label className="field">
-                    <span>
-                      Full name (as it should appear on your certificate)
-                      <Req />
-                    </span>
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      autoComplete="name"
-                      required
-                    />
-                  </label>
-                  <label className="field">
-                    <span>
-                      Email
-                      <Req />
-                    </span>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </label>
-                  <label className="consent">
-                    <input
-                      type="checkbox"
-                      checked={accept}
-                      onChange={(e) => setAccept(e.target.checked)}
-                    />
-                    <span>
-                      I accept the <Link href="/terms/">Terms of use</Link> and the{' '}
-                      <Link href="/privacy/">Privacy policy</Link>.
-                    </span>
-                  </label>
-                  <Button
-                    type="submit"
-                    loading={busy}
-                    disabled={!accept || name.trim().length < 2 || !email}
-                  >
-                    Email me a code
-                  </Button>
-                </form>
-              </div>
-            )}
-            {info && step === 'otp' && (
-              <div className="join-step">
-                <h2 style={{ marginTop: 0 }}>Enter the code we emailed you</h2>
-                <p className="muted">We sent a 6-digit code to {email}.</p>
-                <form onSubmit={verify}>
-                  <label className="field">
-                    <span>
-                      6-digit code
-                      <Req />
-                    </span>
-                    <input
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                    />
-                  </label>
-                  <Button type="submit" loading={busy} disabled={otp.length !== 6}>
-                    Verify
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => setStep('details')}>
-                    Change email
-                  </Button>
-                </form>
-              </div>
-            )}
-            {info && step === 'seat' && (
-              <div className="join-step">
-                {seat ? (
-                  seat.canStart ? (
-                    <div className="seat-box ok">
-                      <span className="seat-ico" aria-hidden="true">
-                        <Icon name="check" size={20} />
-                      </span>
-                      <div>
-                        <h2>You are in</h2>
-                        <p>
-                          Your seat is confirmed
-                          {info.feePaise > 0 ? ', and a receipt was emailed to you' : ''}.
-                        </p>
-                      </div>
-                      <Button loading={busy} onClick={begin}>
-                        {seat.attempt ? 'Resume exam' : 'Start exam'}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="seat-box ok">
-                      <span className="seat-ico" aria-hidden="true">
-                        <Icon name="check" size={20} />
-                      </span>
-                      <div>
-                        <h2>Exam submitted</h2>
-                        <p>Your result and certificate (if any) are sent by email.</p>
-                      </div>
-                    </div>
-                  )
-                ) : ended ? null : (
-                  <div className="seat-box">
-                    <h2>{info.feePaise === 0 ? 'Take your seat' : 'Pay the exam fee'}</h2>
-                    {info.feePaise > 0 && (
-                      <div className="pay-row">
-                        <div>
-                          <span>Exam fee</span>
-                          <small>Inclusive of applicable taxes</small>
-                        </div>
-                        <b>{rupees(info.feePaise)}</b>
-                      </div>
-                    )}
-                    <Button loading={busy} onClick={takeSeat}>
-                      {info.feePaise > 0
-                        ? `Pay ${rupees(info.feePaise)} and join`
-                        : 'Join for free'}
-                    </Button>
-                    {info.feePaise > 0 && (
-                      <p className="pay-note">
-                        <Icon name="shield" size={14} />
+  if (!waiting) {
+    return (
+      <Shell join>
+        <div className="jx">
+          <div className="jx-grid">
+            {info && <JoinHero info={info} />}
+            <section className="card jx-panel">
+              <h1>{step === 'seat' ? 'Confirm your seat' : 'Join this exam'}</h1>
+              <p className="muted">
+                {step === 'seat'
+                  ? 'Last step. Your seat is confirmed once this is done.'
+                  : 'No account needed. Just your name and email.'}
+              </p>
+              <StepDots step={step} paid={(info?.feePaise ?? 0) > 0} />
+              {error && <Alert>{error}</Alert>}
+              {note && <Alert kind="info">{note}</Alert>}
+              {ended && info && (
+                <Alert>
+                  {info.alwaysOpen
+                    ? 'This exam is no longer available.'
+                    : 'This exam has ended and can no longer be joined.'}
+                </Alert>
+              )}
+              <div key={step} className={`join-page ${going}`}>
+                {info && !ended && step === 'details' && (
+                  <div className="join-step">
+                    <h2 style={{ marginTop: 0 }}>Your details</h2>
+                    <form onSubmit={sendCode}>
+                      <label className="field">
                         <span>
-                          A receipt is emailed to you. Once you pay, the seat is yours and the fee
-                          is not refunded. See the <Link href="/refund-policy/">refund policy</Link>
-                          .
+                          Full name (as it should appear on your certificate)
+                          <Req />
                         </span>
-                      </p>
+                        <input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          autoComplete="name"
+                          required
+                        />
+                      </label>
+                      <label className="field">
+                        <span>
+                          Email
+                          <Req />
+                        </span>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          autoComplete="email"
+                          required
+                        />
+                      </label>
+                      <label className="consent">
+                        <input
+                          type="checkbox"
+                          checked={accept}
+                          onChange={(e) => setAccept(e.target.checked)}
+                        />
+                        <span>
+                          I accept the <Link href="/terms/">Terms of use</Link> and the{' '}
+                          <Link href="/privacy/">Privacy policy</Link>.
+                        </span>
+                      </label>
+                      <Button
+                        type="submit"
+                        loading={busy}
+                        disabled={!accept || name.trim().length < 2 || !email}
+                      >
+                        Email me a code
+                      </Button>
+                    </form>
+                  </div>
+                )}
+                {info && step === 'otp' && (
+                  <div className="join-step">
+                    <h2 style={{ marginTop: 0 }}>Enter the code we emailed you</h2>
+                    <p className="muted">We sent a 6-digit code to {email}.</p>
+                    <form onSubmit={verify}>
+                      <label className="field">
+                        <span>
+                          6-digit code
+                          <Req />
+                        </span>
+                        <input
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                        />
+                      </label>
+                      <Button type="submit" loading={busy} disabled={otp.length !== 6}>
+                        Verify
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setStep('details')}>
+                        Change email
+                      </Button>
+                    </form>
+                  </div>
+                )}
+                {info && step === 'seat' && (
+                  <div className="join-step">
+                    {seat ? (
+                      seat.canStart ? (
+                        <div className="seat-box ok">
+                          <span className="seat-ico" aria-hidden="true">
+                            <Icon name="check" size={20} />
+                          </span>
+                          <div>
+                            <h2>{error ? 'You are in' : 'Taking you into the exam'}</h2>
+                            <p>
+                              {error
+                                ? 'Your seat is confirmed, but the exam could not open.'
+                                : 'Your seat is confirmed. Please do not close this page.'}
+                            </p>
+                          </div>
+                          {error && (
+                            <Button loading={busy} onClick={begin}>
+                              {seat.attempt ? 'Resume exam' : 'Start exam'}
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="seat-box ok">
+                          <span className="seat-ico" aria-hidden="true">
+                            <Icon name="check" size={20} />
+                          </span>
+                          <div>
+                            <h2>Exam submitted</h2>
+                            <p>Your result and certificate (if any) are sent by email.</p>
+                          </div>
+                        </div>
+                      )
+                    ) : ended ? null : (
+                      <div className="seat-box">
+                        <h2>{info.feePaise === 0 ? 'Take your seat' : 'Pay the exam fee'}</h2>
+                        {info.feePaise > 0 && (
+                          <div className="pay-row">
+                            <div>
+                              <span>Exam fee</span>
+                              <small>Final price, no GST added</small>
+                            </div>
+                            <b>{rupees(info.feePaise)}</b>
+                          </div>
+                        )}
+                        <Button loading={busy} onClick={takeSeat}>
+                          {info.feePaise > 0
+                            ? `Pay ${rupees(info.feePaise)} and join`
+                            : 'Join for free'}
+                        </Button>
+                        {info.feePaise > 0 && (
+                          <p className="pay-note">
+                            <Icon name="shield" size={14} />
+                            <span>
+                              A receipt is emailed to you. Once you pay, the seat is yours and the
+                              fee is not refunded. See the{' '}
+                              <Link href="/refund-policy/">refund policy</Link>.
+                            </span>
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
               </div>
-            )}
+            </section>
           </div>
-        </Card>
+        </div>
       </Shell>
     );
   }
