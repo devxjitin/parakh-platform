@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../lib/copy';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -116,7 +117,7 @@ export default function LoginPage() {
       {mode === 'exam' ? (
         <Card
           title="Join an exam"
-          subtitle="Enter the exam code your trainer shared. No account needed."
+          subtitle="Enter the exam code your trainer shared. No password needed."
         >
           <form onSubmit={onFindExam} noValidate>
             <Field
@@ -178,7 +179,7 @@ export default function LoginPage() {
               <span>or</span>
             </div>
             <p className="links-new">
-              New trainer? <Link href="/register/">Create trainer account</Link>
+              New trainer? <Link href="/register/">{COPY.createTrainerAccount}</Link>
             </p>
           </div>
         </Card>

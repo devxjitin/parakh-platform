@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../../lib/copy';
 import { useCallback, useEffect, useState } from 'react';
 import type { AdminPayableRow, LedgerCheckDto, PayoutDto } from '@parakh/shared';
 import {
@@ -99,7 +100,7 @@ function PayRow({ row, onDone }: { row: AdminPayableRow; onDone: () => Promise<v
                 <StatusBadge status="LIVE" label="Verified" />
               ) : (
                 <Button variant="secondary" small loading={busy} onClick={verify}>
-                  Mark details verified
+                  {COPY.markDetailsVerified}
                 </Button>
               )}
             </div>
@@ -154,7 +155,7 @@ function PayRow({ row, onDone }: { row: AdminPayableRow; onDone: () => Promise<v
                 />
               </label>
               <Button loading={busy} disabled={utr.trim().length < 6} onClick={pay}>
-                Mark as paid {rupees(Math.round(amount * 100))}
+                {COPY.markAsPaid} {rupees(Math.round(amount * 100))}
               </Button>
               <Button variant="secondary" onClick={() => setOpen(false)}>
                 Cancel

@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../../lib/copy';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -62,7 +63,7 @@ export default function NewExamPage() {
         }
       >
         <Link className="btn btn-secondary btn-link" href="/exams/">
-          Back to exams
+          {COPY.backToExams}
         </Link>
       </PageHeader>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../lib/copy';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { AuthResponse } from '@parakh/shared';
@@ -95,12 +96,12 @@ export default function VerifyEmailPage() {
           {formError && <Alert>{formError}</Alert>}
           {info && <Alert kind="info">{info}</Alert>}
           <Button type="submit" loading={busy}>
-            Verify code
+            {COPY.verifyCode}
           </Button>
         </form>
         <p className="links">
           <button type="button" className="btn btn-secondary" onClick={resend} disabled={!email}>
-            Resend code
+            {COPY.resendCode}
           </button>
         </p>
       </Card>

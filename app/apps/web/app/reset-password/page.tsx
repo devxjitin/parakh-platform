@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../lib/copy';
 import Link from 'next/link';
 import { useState } from 'react';
 import { resetPasswordSchema } from '@parakh/shared';
@@ -99,7 +100,7 @@ export default function ResetPasswordPage() {
           </Button>
         </form>
         <p className="links">
-          <Link href="/forgot-password/">Resend code</Link>
+          <Link href="/forgot-password/">{COPY.resendCode}</Link>
         </p>
       </Card>
     </Shell>

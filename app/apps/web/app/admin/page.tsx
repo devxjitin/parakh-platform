@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../../lib/copy';
 import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import type {
@@ -264,7 +265,7 @@ function Overview() {
                 Payouts
               </Link>
               <Link className="btn btn-secondary btn-link" href="/admin/payments/">
-                Payments
+                {COPY.payments}
               </Link>
               <Link className="btn btn-secondary btn-link" href="/admin/certificates/">
                 Certificates

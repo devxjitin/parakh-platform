@@ -1,5 +1,6 @@
 'use client';
 
+import { COPY } from '../lib/copy';
 import Link from 'next/link';
 import { useState } from 'react';
 import { deleteAccountSchema } from '@parakh/shared';
@@ -97,7 +98,7 @@ export function MyDataPanel({ canClose, onClosed }: { canClose: boolean; onClose
                 />
                 <div className="toolbar">
                   <Button type="submit" variant="danger" loading={busy === 'close'}>
-                    Delete my account
+                    {COPY.deleteAccount}
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => setClosing(false)}>
                     Cancel
