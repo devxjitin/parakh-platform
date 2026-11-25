@@ -1,6 +1,9 @@
-// Tiny database helper for the browser tests: `node scripts/db.mjs close-exam <examId>` moves an
-// exam's closing time into the past (the tests cannot wait for a real exam window to end), and
-// `clear-otps` forgets old emailed codes so a student can ask for a fresh one straight away.
+// Tiny database helper for the browser tests:
+// - `open-exam <examId>` moves an exam's start into the past (an exam must start in the future to
+//   be published, but the tests then sit it straight away),
+// - `close-exam <examId>` moves its closing time into the past (the tests cannot wait for a real
+//   exam window to end),
+// - `clear-otps` forgets old emailed codes so a student can ask for a fresh one straight away.
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -39,13 +42,21 @@ try {
       },
     });
     process.stdout.write(`${id}.${secret}`);
+  } else if (command === 'open-exam' && examId) {
+    // An exam must start in the future to be published, but the test then sits it straight away.
+    await prisma.exam.update({
+      where: { id: examId },
+      data: { startsAt: new Date(Date.now() - 5 * 60_000) },
+    });
   } else if (command === 'close-exam' && examId) {
     await prisma.exam.update({
       where: { id: examId },
       data: { endsAt: new Date(Date.now() - 60 * 60_000) },
     });
   } else {
-    throw new Error('usage: db.mjs close-exam <examId> | clear-otps | session-token <email>');
+    throw new Error(
+      'usage: db.mjs open-exam <examId> | close-exam <examId> | clear-otps | session-token <email>',
+    );
   }
 } finally {
   await prisma.$disconnect();

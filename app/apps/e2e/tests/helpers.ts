@@ -78,6 +78,13 @@ export async function signIn(page: Page, email: string, password = PASSWORD) {
   await page.waitForURL(/\/(dashboard|admin)/);
 }
 
+/** Moves the start into the past: an exam has to start in the future to be published. */
+export function openExam(examId: string) {
+  execFileSync('node', [join(__dirname, '..', 'scripts', 'db.mjs'), 'open-exam', examId], {
+    stdio: 'inherit',
+  });
+}
+
 export function closeExam(examId: string) {
   execFileSync('node', [join(__dirname, '..', 'scripts', 'db.mjs'), 'close-exam', examId], {
     stdio: 'inherit',

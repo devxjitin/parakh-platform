@@ -4,6 +4,7 @@ import {
   API,
   PASSWORD,
   closeExam,
+  openExam,
   emailedCode,
   signIn,
   signUpByApi,
@@ -64,9 +65,10 @@ test('create an exam and publish it', async ({ page, request }) => {
   await expect(page.getByRole('status', { name: 'Total marks' })).toContainText('10');
   // The exam closes by itself: start time plus duration (there is no closing time to enter).
   await page.getByRole('button', { name: 'Start date' }).click();
+  // An exam has to start in the future, so pick tomorrow (the test opens it after publishing).
   await page
     .getByRole('dialog', { name: 'Pick a date' })
-    .getByRole('button', { name: 'Today' })
+    .locator('.cal-day.today + .cal-day')
     .click();
   await page.getByRole('button', { name: 'Start time' }).click();
   await page.getByRole('button', { name: 'Now' }).click();
@@ -114,6 +116,7 @@ test('create an exam and publish it', async ({ page, request }) => {
   const code = page.getByText(/^NVX-[A-Z0-9]{6}$/);
   await expect(code).toBeVisible();
   examCode = (await code.textContent())!.trim();
+  openExam(examId);
 });
 
 test('join with a code and an emailed code, take the exam on a phone and submit', async ({
