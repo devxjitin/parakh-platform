@@ -135,9 +135,7 @@ test('join with a code and an emailed code, take the exam on a phone and submit'
   await page.getByLabel('6-digit code').fill(await emailedCode(student.email));
   await page.getByRole('button', { name: 'Verify' }).click();
   await page.getByRole('button', { name: /Pay .* and join/ }).click();
-  await expect(page.getByText('You are in')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Start exam' }).click();
+  // Paying confirms the seat and takes the student straight into the exam.
   await page.waitForURL(/attempt/);
   await page.getByRole('button', { name: 'Begin exam' }).click();
 
