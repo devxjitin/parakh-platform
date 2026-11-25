@@ -14,6 +14,7 @@ export * from './certificate';
 export * from './practice';
 export * from './admin';
 export * from './autosave';
+export * from './contact';
 export * from './lifecycle';
 export * from './corrections';
 export * from './accommodations';

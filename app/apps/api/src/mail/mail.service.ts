@@ -163,6 +163,60 @@ Your payment for "${r.examTitle}" went through after the exam's closing time had
     });
   }
 
+  /** To the support inbox. Throws on failure, so the visitor can be told to write by email. */
+  async sendContactMessage(
+    inbox: string,
+    r: {
+      name: string;
+      email: string;
+      phone?: string;
+      company?: string;
+      topic?: string;
+      budget?: string;
+      message: string;
+    },
+  ): Promise<void> {
+    const clean = (s: string) => s.replace(/[\r\n]+/g, ' ').trim();
+    const rows: [string, string | undefined][] = [
+      ['Name', r.name],
+      ['Email', r.email],
+      ['Phone', r.phone],
+      ['Company', r.company],
+      ['Topic', r.topic],
+      ['Budget', r.budget],
+    ];
+    const shown = rows.filter(([, v]) => v && v.trim());
+    const text = `${shown.map(([k, v]) => `${k}: ${clean(v!)}`).join('\n')}\n\n${r.message}\n`;
+    const html = layout(
+      'New message from the website',
+      `<p>${shown.map(([k, v]) => `<b>${esc(k)}:</b> ${esc(clean(v!))}`).join('<br>')}</p><p style="white-space:pre-wrap">${esc(r.message)}</p>`,
+    );
+    await this.transport.send({
+      to: inbox,
+      replyTo: r.email,
+      subject:
+        `Website enquiry from ${clean(r.name)}${r.topic ? ` (${clean(r.topic)})` : ''}`.slice(
+          0,
+          200,
+        ),
+      text,
+      html,
+    });
+  }
+
+  /** Tells the visitor their message arrived. */
+  sendContactReceipt(to: string, name: string) {
+    return this.deliver({
+      to,
+      subject: 'We got your message',
+      text: `Hi ${name},\n\nThanks for writing to NandiVex Technologies. We have your message and will reply within two working days.\n`,
+      html: layout(
+        'We got your message',
+        `<p>Hi ${esc(name)}, thanks for writing to NandiVex Technologies. We have your message and will reply within two working days.</p>`,
+      ),
+    });
+  }
+
   sendAccountExists(to: string, name: string) {
     return this.deliver({
       to,

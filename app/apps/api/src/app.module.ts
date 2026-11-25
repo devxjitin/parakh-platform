@@ -11,6 +11,7 @@ import { ConfigModule } from './config/config.module';
 import { ENV, Env } from './config/env';
 import { AttemptsModule } from './attempts/attempts.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { ContactModule } from './contact/contact.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -66,6 +67,7 @@ import { UsersModule } from './users/users.module';
     PracticeModule,
     NotificationsModule,
     CatalogModule,
+    ContactModule,
     CategoriesModule,
   ],
   controllers: [HealthController],
