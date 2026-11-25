@@ -86,7 +86,7 @@ const STRUCTURED_DATA = {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
       name: "NandiVex Technologies",
-      url: "https://nandivex.in",
+      url: "https://nandivex.com",
       logo: `${SITE_URL}/icon-512.png`,
     },
     {

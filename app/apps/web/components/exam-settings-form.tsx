@@ -1,9 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { PRICING, createExamSchema, updateExamSchema, type ExamDetailDto } from '@parakh/shared';
-import { Alert, Button, Field, FieldErrors, describeError, validate } from './ui';
+import {
+  PRICING,
+  createExamSchema,
+  updateExamSchema,
+  type CategoryDto,
+  type ExamDetailDto,
+} from '@parakh/shared';
+import { Alert, Button, Field, FieldErrors, Req, describeError, validate } from './ui';
+import { ApiError, api } from '../lib/api';
 import { useStepSave, type RegisterSave } from '../lib/step-save';
+
+/** The value of the category dropdown that means "add a new category". */
+const NEW_CATEGORY = '__new__';
 
 /** Blank number inputs become NaN so the schema reports them instead of treating them as 0. */
 const toNumber = (v: FormDataEntryValue | null): number =>
@@ -29,11 +39,17 @@ export interface ExamSettingsValues {
   certificatesEnabled?: boolean;
   /** NandiVex-run exams only: what a student pays, in paise (0 = free). */
   studentFeePaise?: number;
+  /** NandiVex-run exams only: always open, and how it appears on the public list. */
+  alwaysOpen?: boolean;
+  catalogSummary?: string | null;
+  catalogTopics?: string[];
+  catalogCategory?: string;
 }
 
 export function ExamSettingsForm({
   initial,
   nandivex = false,
+  alwaysOpenMode = false,
   submitLabel,
   onSubmit,
   registerSave,
@@ -41,6 +57,8 @@ export function ExamSettingsForm({
   initial?: ExamDetailDto;
   /** The exam is run by NandiVex (an admin is creating it): show the student fee. */
   nandivex?: boolean;
+  /** Creating an always-open exam (admin): no schedule, and it can be listed publicly. */
+  alwaysOpenMode?: boolean;
   submitLabel: string;
   onSubmit: (values: ExamSettingsValues) => Promise<void>;
   /**
@@ -52,6 +70,39 @@ export function ExamSettingsForm({
   const [message, setMessage] = useState('');
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  // An always-open exam has no schedule and a public listing; a scheduled one has neither.
+  const alwaysOpen = initial ? initial.alwaysOpen : alwaysOpenMode;
+  // The categories an admin has created, and what is chosen in the dropdown.
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+  const [categoryChoice, setCategoryChoice] = useState(initial?.catalogCategory ?? '');
+  useEffect(() => {
+    if (!alwaysOpen) return;
+    api<CategoryDto[]>('/admin/categories')
+      .then((rows) => setCategories(rows))
+      .catch(() => setCategories([]))
+      .finally(() => setCategoriesLoaded(true));
+  }, [alwaysOpen]);
+
+  /** The category the admin picked, or the new name they typed under "Other". */
+  function categoryFrom(f: FormData): string {
+    const choice = String(f.get('catalogCategory') ?? '');
+    return choice === NEW_CATEGORY ? String(f.get('catalogCategoryNew') ?? '').trim() : choice;
+  }
+
+  /** Creates the typed category (when "Other" is chosen) so the exam can be filed under it. */
+  async function ensureCategory(form: HTMLFormElement | null, name: unknown) {
+    if (!form || !alwaysOpen || typeof name !== 'string') return;
+    if (String(new FormData(form).get('catalogCategory') ?? '') !== NEW_CATEGORY) return;
+    try {
+      const row = await api<CategoryDto>('/admin/categories', { method: 'POST', body: { name } });
+      setCategories((c) => [...c, row].sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (err) {
+      // It already exists: the API matches names ignoring case, so the exam can use it as is.
+      if (!(err instanceof ApiError && err.status === 409)) throw err;
+    }
+    setCategoryChoice(name);
+  }
 
   /** Reads the form and checks it against the schema. */
   function read(form: HTMLFormElement) {
@@ -63,10 +114,39 @@ export function ExamSettingsForm({
       durationMinutes: toNumber(f.get('durationMinutes')),
       passPercent: toNumber(f.get('passPercent')),
       ...(nandivex || initial?.nandivexHosted
-        ? { studentFeePaise: Math.round(Number(f.get('studentFee') ?? 0) * 100) }
+        ? {
+            studentFeePaise: Math.round(Number(f.get('studentFee') ?? 0) * 100),
+            // The type is chosen when the exam is created and cannot change afterwards.
+            ...(initial ? {} : { alwaysOpen: alwaysOpenMode }),
+            ...(alwaysOpen
+              ? {
+                  catalogSummary: String(f.get('catalogSummary') ?? '').trim() || null,
+                  catalogCategory: categoryFrom(f),
+                  catalogTopics: String(f.get('catalogTopics') ?? '')
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter(Boolean),
+                }
+              : {}),
+          }
         : {}),
     };
-    return validate(initial ? updateExamFormSchema : createExamSchema, candidate);
+    const result = validate(initial ? updateExamFormSchema : createExamSchema, candidate);
+    if (!alwaysOpen) return result;
+    // The exam list card needs its summary and topics (the update schema is partial, so check here).
+    const c = candidate as { catalogSummary?: string | null; catalogTopics?: string[] };
+    const extra: FieldErrors = {};
+    if (!c.catalogSummary) {
+      extra.catalogSummary = 'Write a short summary students will see in the exam list';
+    }
+    if (!c.catalogTopics?.length) extra.catalogTopics = 'Add at least one topic';
+    const choice = String(new FormData(form).get('catalogCategory') ?? '');
+    if (!choice) extra.catalogCategory = 'Choose the category this exam belongs to';
+    else if (choice === NEW_CATEGORY && !categoryFrom(new FormData(form))) {
+      extra.catalogCategoryNew = 'Enter the name of the new category';
+    }
+    if (Object.keys(extra).length === 0) return result;
+    return { ok: false as const, errors: { ...(result.ok ? {} : result.errors), ...extra } };
   }
 
   /** Certificates are switched on or off later, in the exam's Certificate tab. */
@@ -92,6 +172,10 @@ export function ExamSettingsForm({
     setMessage('');
     setBusy(true);
     try {
+      await ensureCategory(
+        e.currentTarget,
+        (result.data as { catalogCategory?: string }).catalogCategory,
+      );
       await onSubmit(valuesOf(result.data));
       setSaved(true);
     } catch (err) {
@@ -126,6 +210,7 @@ export function ExamSettingsForm({
     const key = JSON.stringify(result.data);
     if (key === lastSaved.current) return null;
     try {
+      await ensureCategory(form, (result.data as { catalogCategory?: string }).catalogCategory);
       await onSubmit(valuesOf(result.data));
       lastSaved.current = key;
       setErrors({});
@@ -188,6 +273,68 @@ export function ExamSettingsForm({
             {errors.instructions && <small className="error-text">{errors.instructions}</small>}
           </label>
         </div>
+        {alwaysOpen && (
+          <>
+            <label className="field">
+              <span>
+                Summary for the exam list
+                <Req />
+              </span>
+              <textarea
+                name="catalogSummary"
+                defaultValue={initial?.catalogSummary ?? ''}
+                maxLength={300}
+                placeholder="One or two lines that tell students what this exam is for"
+              />
+              {errors.catalogSummary && (
+                <small className="error-text">{errors.catalogSummary}</small>
+              )}
+            </label>
+            <label className="field">
+              <span>
+                Category (field)
+                <Req />
+              </span>
+              <select
+                name="catalogCategory"
+                value={categoryChoice}
+                onChange={(ev) => setCategoryChoice(ev.target.value)}
+              >
+                <option value="">{categoriesLoaded ? 'Choose a category' : 'Loading…'}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value={NEW_CATEGORY}>Other (add a new category)</option>
+              </select>
+              <small className="muted">
+                Students can filter the exam list by this field. Not in the list? Choose Other.
+              </small>
+              {errors.catalogCategory && (
+                <small className="error-text">{errors.catalogCategory}</small>
+              )}
+            </label>
+            {categoryChoice === NEW_CATEGORY && (
+              <Field
+                label="Category Name"
+                required
+                name="catalogCategoryNew"
+                maxLength={40}
+                placeholder="For example: Cyber Security"
+                error={errors.catalogCategoryNew}
+              />
+            )}
+            <Field
+              label="Topics (comma separated)"
+              required
+              name="catalogTopics"
+              defaultValue={initial?.catalogTopics.join(', ') ?? ''}
+              hint="For example: RAG, Agents, Prompting. Shown on the exam card. This exam is listed on the landing page and in the app as soon as you publish it."
+              error={errors.catalogTopics}
+            />
+          </>
+        )}
       </section>
 
       <section className="form-section form-full">

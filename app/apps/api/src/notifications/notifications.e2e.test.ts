@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { TestContext, createTestApp, signUp } from '../../test/helpers';
+import { TestContext, createAdmin, createTestApp, signUp } from '../../test/helpers';
 import { PublishedExam, auth, joinExam, newStudent, publishExam } from '../../test/scenario';
 import { NotificationsService } from './notifications.service';
 
@@ -127,5 +127,48 @@ describe('results out', () => {
     expect(mail?.text).toMatch(/Your score: \d+(\.\d+)? \/ 10/);
     expect(mail?.text).not.toContain('/result/');
     expect(mail?.text).toMatch(/practice code/i);
+  });
+});
+
+describe('results overdue alerts', () => {
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+
+  async function closedExam(closedDaysAgo: number) {
+    exam = await publishExam(ctx, trainer);
+    const sam = await newStudent(ctx, 'sam@example.com');
+    const enrollmentId = await joinExam(ctx, sam, exam.code);
+    await ctx.http().post('/attempts').set(auth(sam)).send({ enrollmentId }).expect(200);
+    await ctx.prisma.exam.update({
+      where: { id: exam.examId },
+      data: { startsAt: daysAgo(closedDaysAgo + 1), endsAt: daysAgo(closedDaysAgo) },
+    });
+    ctx.mail.clear();
+  }
+
+  it('does nothing while the exam closed less than 3 days ago', async () => {
+    await closedExam(1);
+    expect(await notify.sendResultsOverdue()).toBe(0);
+  });
+
+  it('reminds the trainer once after 3 days', async () => {
+    await closedExam(4);
+    expect(await notify.sendResultsOverdue()).toBe(1);
+    expect(ctx.mail.lastTo('trainer@example.com')?.subject).toMatch(/publish the results/);
+    expect(await notify.sendResultsOverdue()).toBe(0);
+  });
+
+  it('tells the admins once after 7 days, and not when results are already published', async () => {
+    await createAdmin(ctx);
+    await closedExam(8);
+    // trainer reminder + admin escalation
+    expect(await notify.sendResultsOverdue()).toBe(2);
+    expect(ctx.mail.lastTo('admin@example.com')?.subject).toMatch(/Results overdue/);
+    expect(await notify.sendResultsOverdue()).toBe(0);
+
+    await ctx.prisma.exam.update({
+      where: { id: exam.examId },
+      data: { resultsReminderSentAt: null, resultsEscalatedAt: null, status: 'RESULTS_FINAL' },
+    });
+    expect(await notify.sendResultsOverdue()).toBe(0);
   });
 });

@@ -18,3 +18,5 @@ export * from './lifecycle';
 export * from './corrections';
 export * from './accommodations';
 export * from './ai-paper';
+export * from './catalog';
+export * from './categories';

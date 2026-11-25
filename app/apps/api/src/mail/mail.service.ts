@@ -151,11 +151,14 @@ Open Admin > Payments to look into them.
   sendWindowPassed(to: string, name: string, r: { examTitle: string }) {
     return this.deliver({
       to,
-      subject: `The closing time of "${r.examTitle}" has already passed`,
-      text: `Hi ${name},\n\nYour payment for "${r.examTitle}" went through, but the exam's closing time has already passed, so students cannot join. Open the exam on Parakh, go to Share, and use "Extend closing time".\n`,
+      subject: `"${r.examTitle}" was not published: its closing time has passed`,
+      text: `Hi ${name},
+
+Your payment for "${r.examTitle}" went through after the exam's closing time had already passed, so we did not publish it and no students were invited. Your payment will be refunded in full. To run the exam, set a new schedule on the draft and publish it again.
+`,
       html: layout(
-        'The closing time has passed',
-        `<p>Hi ${esc(name)}, your payment for <strong>${esc(r.examTitle)}</strong> went through, but the exam's closing time has already passed, so students cannot join. The closing time cannot be changed after publishing, so please contact support to sort this out.</p>`,
+        'Exam not published',
+        `<p>Hi ${esc(name)}, your payment for <strong>${esc(r.examTitle)}</strong> went through after the exam's closing time had already passed, so we did not publish it and no students were invited. <strong>Your payment will be refunded in full.</strong> To run the exam, set a new schedule on the draft and publish it again.</p>`,
       ),
     });
   }
@@ -216,11 +219,11 @@ Exam code: ${r.code}
 Share link: ${joinUrl}
 
 Receipt ${r.receiptNo}, ${date}
-Exam creation fee: INR ${rupees} (inclusive of applicable taxes)
+Exam creation fee: INR ${rupees} (final price, no GST added)
 `,
       html: layout(
         'Your exam is published',
-        `<p>Hi ${esc(name)}, your exam <strong>${esc(r.examTitle)}</strong> is published. Share this code with your students:</p>${codeBlock(r.code)}<p>Or send them <a href="${esc(joinUrl)}">${esc(joinUrl)}</a></p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Exam creation fee: INR ${rupees} (inclusive of applicable taxes)</p>`,
+        `<p>Hi ${esc(name)}, your exam <strong>${esc(r.examTitle)}</strong> is published. Share this code with your students:</p>${codeBlock(r.code)}<p>Or send them <a href="${esc(joinUrl)}">${esc(joinUrl)}</a></p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Exam creation fee: INR ${rupees} (final price, no GST added)</p>`,
       ),
     });
   }
@@ -291,15 +294,72 @@ A practice code for the same questions will be emailed to you separately.
 
   /** One reminder, about a day before an exam the student has joined. */
   /** The exam a student paid for was cancelled. Fees are not refunded; say so plainly. */
-  sendExamCancelled(to: string, name: string, r: { examTitle: string; reason: string }) {
+  sendExamCancelled(
+    to: string,
+    name: string,
+    r: { examTitle: string; reason: string; refunded: boolean },
+  ) {
     const url = `${this.env.WEB_ORIGIN.split(',')[0].trim()}/refund-policy/`;
+    const moneyText = r.refunded
+      ? 'You had not started, so your fee is being refunded in full to your original payment source. You will get a separate email when it is done. Refund policy'
+      : 'Please see our refund policy for what applies to you';
+    const moneyHtml = r.refunded
+      ? 'You had not started, so your fee is being <strong>refunded in full</strong> to your original payment source. You will get a separate email when it is done.'
+      : `Please see our <a href="${esc(url)}">refund policy</a> for what applies to you.`;
     return this.deliver({
       to,
       subject: `Exam cancelled: ${r.examTitle}`,
-      text: `Hi ${name},\n\nThe exam "${r.examTitle}" has been cancelled and can no longer be joined or started.\n\nReason: ${r.reason}\n\nAs stated in our refund policy, exam fees are not refunded when an exam is cancelled: ${url}\n\nIf you were charged by mistake, write to us from the contact page.\n`,
+      text: `Hi ${name},\n\nThe exam "${r.examTitle}" has been cancelled and can no longer be joined or started.\n\nReason: ${r.reason}\n\n${moneyText}: ${url}\n\nIf you were charged by mistake, write to us from the contact page.\n`,
       html: layout(
         'Your exam was cancelled',
-        `<p>Hi ${esc(name)}, the exam <strong>${esc(r.examTitle)}</strong> has been cancelled and can no longer be joined or started.</p><p style="font-size:14px">Reason: ${esc(r.reason)}</p><p style="font-size:14px">As stated in our <a href="${esc(url)}">refund policy</a>, exam fees are not refunded when an exam is cancelled. If you were charged by mistake, write to us from the contact page.</p>`,
+        `<p>Hi ${esc(name)}, the exam <strong>${esc(r.examTitle)}</strong> has been cancelled and can no longer be joined or started.</p><p style="font-size:14px">Reason: ${esc(r.reason)}</p><p style="font-size:14px">${moneyHtml} If you were charged by mistake, write to us from the contact page.</p>`,
+      ),
+    });
+  }
+
+  /** Trainer reminder (and, with `forAdmin`, the escalation to admins) that results are overdue. */
+  sendResultsOverdue(
+    to: string,
+    name: string,
+    r: { examTitle: string; days: number; waiting: number; forAdmin?: { trainer: string } },
+  ) {
+    const url = `${this.env.WEB_ORIGIN.split(',')[0].trim()}/exams/`;
+    const who = r.forAdmin
+      ? `The exam "${r.examTitle}" by ${r.forAdmin.trainer} closed ${r.days} days ago and its results are still not published. ${r.waiting} student(s) are waiting.`
+      : `Your exam "${r.examTitle}" closed ${r.days} days ago and its results are not published yet. ${r.waiting} student(s) who paid are waiting for their marks. Please mark any written answers and publish the results.`;
+    return this.deliver({
+      to,
+      subject: r.forAdmin
+        ? `Results overdue: ${r.examTitle}`
+        : `Please publish the results of "${r.examTitle}"`,
+      text: `Hi ${name},\n\n${who}\n\nOpen the exam: ${url}\n`,
+      html: layout(
+        r.forAdmin ? 'Results overdue' : 'Please publish your results',
+        `<p>Hi ${esc(name)}, ${esc(who)}</p><p><a href="${esc(url)}">Open your exams</a></p>`,
+      ),
+    });
+  }
+
+  sendExamRescheduled(
+    to: string,
+    name: string,
+    r: { examTitle: string; startsAt: Date; endsAt: Date; durationMinutes: number },
+  ) {
+    const url = `${this.env.WEB_ORIGIN.split(',')[0].trim()}/dashboard/`;
+    const fmt = (d: Date) =>
+      d.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+    const line = `It now opens on ${fmt(r.startsAt)} and closes on ${fmt(r.endsAt)} (India time). You will have ${r.durationMinutes} minutes once you start.`;
+    return this.deliver({
+      to,
+      subject: `New time for ${r.examTitle}`,
+      text: `Hi ${name},\n\nThe time of the exam "${r.examTitle}" has changed. Your seat is unchanged and you do not need to pay again.\n\n${line}\n\nOpen it from your dashboard: ${url}\n`,
+      html: layout(
+        'The exam time has changed',
+        `<p>Hi ${esc(name)}, the time of <strong>${esc(r.examTitle)}</strong> has changed. Your seat is unchanged and you do not need to pay again.</p><p>${esc(line)}</p><p><a href="${esc(url)}">Open your dashboard</a></p>`,
       ),
     });
   }
@@ -410,10 +470,10 @@ A practice code for the same questions will be emailed to you separately.
     return this.deliver({
       to,
       subject: `Receipt ${r.receiptNo}: ${r.seats} seats for "${r.examTitle}"`,
-      text: `Hi ${name},\n\nYou bought ${r.seats} seat(s) for "${r.examTitle}".\n\nReceipt ${r.receiptNo}, ${date}\nTotal: INR ${rupees} (inclusive of applicable taxes)\n`,
+      text: `Hi ${name},\n\nYou bought ${r.seats} seat(s) for "${r.examTitle}".\n\nReceipt ${r.receiptNo}, ${date}\nTotal: INR ${rupees} (final price, no GST added)\n`,
       html: layout(
         'Seats purchased',
-        `<p>Hi ${esc(name)}, you bought <strong>${r.seats}</strong> seat(s) for <strong>${esc(r.examTitle)}</strong>.</p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Total: INR ${rupees} (inclusive of applicable taxes)</p>`,
+        `<p>Hi ${esc(name)}, you bought <strong>${r.seats}</strong> seat(s) for <strong>${esc(r.examTitle)}</strong>.</p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Total: INR ${rupees} (final price, no GST added)</p>`,
       ),
     });
   }
@@ -440,10 +500,10 @@ A practice code for the same questions will be emailed to you separately.
     return this.deliver({
       to,
       subject: `Receipt ${r.receiptNo}: you have joined "${r.examTitle}"`,
-      text: `Hi ${name},\n\nYou have joined "${r.examTitle}". ${window}\nTo start, open ${this.joinUrl(r.code)} when the exam opens, confirm your email with the code we send, and press Start.\n\nReceipt ${r.receiptNo}, ${date}\nExam fee: INR ${rupees} (inclusive of applicable taxes)\n`,
+      text: `Hi ${name},\n\nYou have joined "${r.examTitle}". ${window}\nTo start, open ${this.joinUrl(r.code)} when the exam opens, confirm your email with the code we send, and press Start.\n\nReceipt ${r.receiptNo}, ${date}\nExam fee: INR ${rupees} (final price, no GST added)\n`,
       html: layout(
         'You have joined the exam',
-        `<p>Hi ${esc(name)}, you have joined <strong>${esc(r.examTitle)}</strong>. ${esc(window)} To start the exam, open <a href="${esc(this.joinUrl(r.code))}">the join page</a> when it opens, confirm your email with the code we send, and press Start.</p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Exam fee: INR ${rupees} (inclusive of applicable taxes)</p>`,
+        `<p>Hi ${esc(name)}, you have joined <strong>${esc(r.examTitle)}</strong>. ${esc(window)} To start the exam, open <a href="${esc(this.joinUrl(r.code))}">the join page</a> when it opens, confirm your email with the code we send, and press Start.</p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Exam fee: INR ${rupees} (final price, no GST added)</p>`,
       ),
     });
   }

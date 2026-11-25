@@ -52,63 +52,6 @@ const singleMarks = async () =>
     })
   )?.marksAwarded;
 
-describe('fixing the answer key', () => {
-  it('marks every finished attempt again with the new key, and audits before and after', async () => {
-    expect(await singleMarks()).toBe(2);
-    const res = await put(`/questions/${exam.questionIds.single}/answer-key`, {
-      correctOptions: [1],
-      reason: 'Option B was the right one',
-    }).expect(200);
-    expect(res.body.regraded).toBe(1);
-    expect(await singleMarks()).toBe(0);
-    const audit = await ctx.prisma.auditLog.findFirst({
-      where: { action: 'question.correct_key' },
-    });
-    expect(JSON.stringify(audit?.meta)).toContain('Option B was the right one');
-    const q = await ctx.prisma.question.findUnique({ where: { id: exam.questionIds.single } });
-    expect(q?.revision).toBe(1);
-  });
-
-  it('rejects impossible keys and written questions', async () => {
-    await put(`/questions/${exam.questionIds.single}/answer-key`, {
-      correctOptions: [0, 1],
-      reason: 'two answers',
-    }).expect(409);
-    await put(`/questions/${exam.questionIds.single}/answer-key`, {
-      correctOptions: [5],
-      reason: 'no such option',
-    }).expect(409);
-    await put(`/questions/${exam.questionIds.subjective}/answer-key`, {
-      correctOptions: [0],
-      reason: 'written question',
-    }).expect(409);
-  });
-});
-
-describe('dropping a question', () => {
-  it('gives everyone its full marks, and can be undone', async () => {
-    expect(await score()).toBe(2); // only the single question was answered, correctly
-    // Sam left the multi question blank, so it was worth 0 to him.
-    await put(`/questions/${exam.questionIds.multi}/dropped`, {
-      dropped: true,
-      reason: 'Question was ambiguous',
-    }).expect(200);
-    const attempt = await ctx.prisma.attempt.findUnique({ where: { id: samAttempt } });
-    expect(attempt?.score).toBe(5); // 2 + the dropped question's 3
-    expect(attempt?.maxScore).toBe(10);
-
-    await put(`/questions/${exam.questionIds.multi}/dropped`, {
-      dropped: true,
-      reason: 'Again please',
-    }).expect(409);
-    await put(`/questions/${exam.questionIds.multi}/dropped`, {
-      dropped: false,
-      reason: 'Changed my mind',
-    }).expect(200);
-    expect(await score()).toBe(2);
-  });
-});
-
 describe('overriding one answer', () => {
   it('sets a mark by hand that survives a regrade, and clears it again', async () => {
     await put(`/attempts/${samAttempt}/answers/${exam.questionIds.single}/override`, {
@@ -117,17 +60,11 @@ describe('overriding one answer', () => {
     }).expect(200);
     expect(await singleMarks()).toBe(1);
 
-    // Changing the key regrades everyone, but the hand-set mark stays.
-    await put(`/questions/${exam.questionIds.single}/answer-key`, {
-      correctOptions: [1],
-      reason: 'key fix',
-    }).expect(200);
-    expect(await singleMarks()).toBe(1);
-
     await put(`/attempts/${samAttempt}/answers/${exam.questionIds.single}/override`, {
       marks: null,
     }).expect(200);
-    expect(await singleMarks()).toBe(0);
+    // Back to the marks the answer key gives (option 0 is correct).
+    expect(await singleMarks()).toBe(2);
   });
 
   it('needs a reason and cannot exceed the question marks', async () => {
@@ -141,43 +78,74 @@ describe('overriding one answer', () => {
   });
 });
 
-describe('fixing wording', () => {
-  it('changes text but not the number of options, and keeps the key', async () => {
-    await ctx
-      .http()
-      .patch(`${base()}/questions/${exam.questionIds.single}/correction`)
-      .set(auth(trainer))
-      .send({ body: 'What does IaaS stand for?', reason: 'typo fix' })
-      .expect(200);
-    const q = await ctx.prisma.question.findUnique({ where: { id: exam.questionIds.single } });
-    expect(q?.body).toBe('What does IaaS stand for?');
-    expect(q?.correctOptions).toEqual([0]);
-    await ctx
-      .http()
-      .patch(`${base()}/questions/${exam.questionIds.single}/correction`)
-      .set(auth(trainer))
-      .send({ options: ['Only', 'Two'] })
-      .expect(409);
-  });
-});
-
 describe('who and when', () => {
+  const overrideUrl = () => `/attempts/${samAttempt}/answers/${exam.questionIds.single}/override`;
+
   it('is for the owning trainer only', async () => {
     const other = await signUp(ctx, { role: 'EXAMINER', email: 'other@example.com' });
     await ctx
       .http()
-      .put(`${base()}/questions/${exam.questionIds.single}/dropped`)
+      .put(base() + overrideUrl())
       .set(auth(other))
-      .send({ dropped: true, reason: 'not my exam' })
+      .send({ marks: 1, reason: 'not my exam' })
       .expect(404);
   });
 
   it('is refused once results are published', async () => {
     await ctx.prisma.exam.update({ where: { id: exam.examId }, data: { status: 'RESULTS_FINAL' } });
-    await put(`/questions/${exam.questionIds.single}/answer-key`, {
-      correctOptions: [1],
-      reason: 'too late',
-    }).expect(409);
-    expect(await score()).not.toBe(undefined);
+    await put(overrideUrl(), { marks: 1, reason: 'too late' }).expect(409);
+  });
+});
+
+describe('after the result was sent', () => {
+  it('refuses to override marks once the student has been emailed', async () => {
+    const url = `/attempts/${samAttempt}/answers/${exam.questionIds.single}/override`;
+    await ctx.prisma.attempt.update({
+      where: { id: samAttempt },
+      data: { resultEmailedAt: new Date() },
+    });
+    const res = await put(url, { marks: 1, reason: 'late fix' }).expect(409);
+    expect(res.body.message).toMatch(/already been sent/);
+  });
+});
+
+describe('a published exam cannot be fixed', () => {
+  const qUrl = () => `${base()}/questions/${exam.questionIds.single}`;
+
+  it('has no way to change the wording, the answer key or drop a question', async () => {
+    await ctx
+      .http()
+      .patch(`${qUrl()}/correction`)
+      .set(auth(trainer))
+      .send({ body: 'Changed' })
+      .expect(404);
+    await ctx
+      .http()
+      .put(`${qUrl()}/answer-key`)
+      .set(auth(trainer))
+      .send({ correctOptions: [1], reason: 'key fix' })
+      .expect(404);
+    await ctx
+      .http()
+      .put(`${qUrl()}/dropped`)
+      .set(auth(trainer))
+      .send({ dropped: true, reason: 'drop it' })
+      .expect(404);
+  });
+
+  it('refuses edits to the exam and its questions', async () => {
+    await ctx.http().patch(base()).set(auth(trainer)).send({ title: 'New title' }).expect(409);
+    await ctx
+      .http()
+      .put(qUrl())
+      .set(auth(trainer))
+      .send({
+        type: 'SINGLE',
+        body: 'Changed',
+        options: ['a', 'b'],
+        correctOptions: [0],
+        marks: 1,
+      })
+      .expect(409);
   });
 });

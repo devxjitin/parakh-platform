@@ -1,5 +1,10 @@
 import { Body, Controller, HttpCode, Param, Post } from '@nestjs/common';
-import { cancelExamSchema, type CancelExamInput } from '@parakh/shared';
+import {
+  cancelExamSchema,
+  rescheduleExamSchema,
+  type CancelExamInput,
+  type RescheduleExamInput,
+} from '@parakh/shared';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { ZodValidationPipe } from '../common/zod.pipe';
 import { ExamLifecycleService } from './exam-lifecycle.service';
@@ -13,6 +18,18 @@ export class ExamLifecycleController {
   @HttpCode(200)
   close(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.lifecycle.close(user, id);
+  }
+
+  /** Moves the opening and closing time of a published exam that nobody has started yet. */
+  @Roles('EXAMINER')
+  @Post('exams/:id/reschedule')
+  @HttpCode(200)
+  reschedule(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(rescheduleExamSchema)) body: RescheduleExamInput,
+  ) {
+    return this.lifecycle.reschedule(user, id, body);
   }
 
   @Roles('EXAMINER', 'ADMIN')

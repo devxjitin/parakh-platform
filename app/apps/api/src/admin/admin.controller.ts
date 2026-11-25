@@ -138,6 +138,12 @@ export class AdminController {
     return { id, verified: true };
   }
 
+  /** Always-open attempts waiting for their written answers to be marked. */
+  @Get('reviews')
+  reviews() {
+    return this.reports.reviewQueue();
+  }
+
   @Get('overview')
   overview() {
     return this.reports.overview();

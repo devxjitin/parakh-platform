@@ -99,6 +99,21 @@ const rows = async (status = 'APPROVED') =>
     }[];
   };
 const certMails = () => ctx.mail.outbox.filter((m) => m.subject.startsWith('Your certificate'));
+/** A draft exam: the certificate settings can only be changed until the exam is published. */
+const draftExam = async () =>
+  (
+    await ctx
+      .http()
+      .post('/exams')
+      .set(auth(trainer))
+      .send({
+        title: 'Draft paper',
+        durationMinutes: 30,
+        startsAt: new Date(Date.now() + 3_600_000).toISOString(),
+        endsAt: new Date(Date.now() + 5 * 3_600_000).toISOString(),
+      })
+      .expect(201)
+  ).body.id as string;
 
 describe('certificate template', () => {
   beforeEach(async () => {
@@ -112,10 +127,11 @@ describe('certificate template', () => {
       participation: true,
       trainerCertificate: true,
     });
+    const draft = await draftExam();
     const saved = (
       await ctx
         .http()
-        .put(`/exams/${exam.examId}/certificate`)
+        .put(`/exams/${draft}/certificate`)
         .set(auth(trainer))
         .send({ participation: false, trainerCertificate: false })
         .expect(200)
@@ -128,10 +144,11 @@ describe('certificate template', () => {
   });
 
   it('has no design settings: the look is fixed and extra fields are ignored', async () => {
+    const draft = await draftExam();
     const saved = (
       await ctx
         .http()
-        .put(`/exams/${exam.examId}/certificate`)
+        .put(`/exams/${draft}/certificate`)
         .set(auth(trainer))
         .send({
           layout: 'CLASSIC',
@@ -146,6 +163,15 @@ describe('certificate template', () => {
       'participation',
       'trainerCertificate',
     ]);
+  });
+
+  it('cannot be changed once the exam is published', async () => {
+    await ctx
+      .http()
+      .put(`/exams/${exam.examId}/certificate`)
+      .set(auth(trainer))
+      .send({ participation: false })
+      .expect(409);
   });
 
   it('validates, and is only for the trainer who owns the exam', async () => {

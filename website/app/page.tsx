@@ -2,6 +2,7 @@
 
 import { PRICING, appUrl, formatInr } from '../lib/config';
 import { Icon, type IconName } from '../components/icons';
+import { AvailableExams } from '../components/available-exams';
 import { CertificateCheck } from '../components/certificate-check';
 import { Reveal } from '../components/reveal';
 import { LandingFrame } from '../components/landing-frame';
@@ -215,6 +216,9 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ---------- available exams (live from the API) ---------- */}
+      <AvailableExams />
 
       {/* ---------- features ---------- */}
       <section className="lp-section" id="features">

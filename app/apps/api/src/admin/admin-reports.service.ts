@@ -7,6 +7,8 @@ import {
   type AuditRowDto,
   type MonthlyReportDto,
   type PageDto,
+  type ReviewQueueDto,
+  REVIEW_PROMISE_HOURS,
   type SeriesPointDto,
   type TrainerCollectionRowDto,
   type TrainerCollectionsDto,
@@ -384,5 +386,50 @@ export class AdminReportsService {
         paidOutPaise: rows.reduce((s, r) => s + r.paidOutPaise, 0),
       },
     };
+  }
+  /**
+   * Always-open attempts waiting for an admin to mark their written answers, oldest first. A
+   * student is promised a result within REVIEW_PROMISE_HOURS of submitting.
+   */
+  async reviewQueue(): Promise<ReviewQueueDto> {
+    const attempts = await this.prisma.attempt.findMany({
+      where: {
+        status: { in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
+        exam: { alwaysOpen: true },
+      },
+      orderBy: { submittedAt: 'asc' },
+      take: 200,
+      include: {
+        student: { select: { name: true, email: true } },
+        exam: {
+          select: { id: true, title: true, questions: { select: { id: true, type: true } } },
+        },
+        answers: { select: { questionId: true, text: true, marksAwarded: true } },
+      },
+    });
+    const dueMs = REVIEW_PROMISE_HOURS * 3_600_000;
+    const items = attempts.flatMap((a) => {
+      const written = new Set(
+        a.exam.questions.filter((q) => q.type === 'SUBJECTIVE').map((q) => q.id),
+      );
+      const pending = a.answers.filter(
+        (x) => written.has(x.questionId) && x.text?.trim() && x.marksAwarded === null,
+      ).length;
+      if (pending === 0) return [];
+      const submittedAt = a.submittedAt ?? a.deadlineAt;
+      return [
+        {
+          attemptId: a.id,
+          examId: a.exam.id,
+          examTitle: a.exam.title,
+          studentName: a.student.name,
+          studentEmail: a.student.email,
+          submittedAt: submittedAt.toISOString(),
+          pendingAnswers: pending,
+          overdue: Date.now() - submittedAt.getTime() > dueMs,
+        },
+      ];
+    });
+    return { items };
   }
 }

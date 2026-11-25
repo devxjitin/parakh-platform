@@ -34,7 +34,7 @@ const hexToRgb = (hex: string) => {
   return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 };
 const GREY = rgb(0.38, 0.4, 0.45);
-// NandiVex palette (nandivex.in): deep purple text, orange as the small highlight.
+// NandiVex palette (nandivex.com): deep purple text, orange as the small highlight.
 const INK = rgb(0x2a / 255, 0x1b / 255, 0x47 / 255);
 const ORANGE = rgb(1, 0xb0 / 255, 0x20 / 255);
 

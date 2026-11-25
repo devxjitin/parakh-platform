@@ -27,6 +27,12 @@ const get = (who: Token, url: string) => ctx.http().get(url).set(auth(who));
 const put = (who: Token, url: string, body: object) =>
   ctx.http().put(url).set(auth(who)).send(body);
 const month = () => monthOf(new Date());
+/** A window that has not started yet, for exams that are about to be published. */
+const upcoming = () => ({
+  durationMinutes: 30,
+  startsAt: new Date(Date.now() + 3_600_000).toISOString(),
+  endsAt: new Date(Date.now() + 5 * 3_600_000).toISOString(),
+});
 const window = () => ({
   durationMinutes: 30,
   startsAt: new Date(Date.now() - 3_600_000).toISOString(),
@@ -107,6 +113,16 @@ describe('monthly report: how much did we earn and owe', () => {
     // 3 students x 74.50 = 223.50, below the 500 minimum, so an admin pays a direct payout
     const trainerRow = await ctx.prisma.user.findUniqueOrThrow({
       where: { email: 'trainer@example.com' },
+    });
+    await ctx.prisma.examinerProfile.upsert({
+      where: { userId: trainerRow.id },
+      create: {
+        userId: trainerRow.id,
+        payoutMethod: 'UPI',
+        upiId: 'tara@okbank',
+        payoutDetailsVerifiedAt: new Date(),
+      },
+      update: { payoutMethod: 'UPI', upiId: 'tara@okbank', payoutDetailsVerifiedAt: new Date() },
     });
     const before = (await get(admin, `/admin/reports/monthly?month=${month()}`).expect(200)).body;
     expect(before.refundedPaise).toBe(14_900);
@@ -205,6 +221,16 @@ describe('trainer collections: how much was collected for each trainer', () => {
       .expect(200);
     const trainerRow = await ctx.prisma.user.findUniqueOrThrow({
       where: { email: 'trainer@example.com' },
+    });
+    await ctx.prisma.examinerProfile.upsert({
+      where: { userId: trainerRow.id },
+      create: {
+        userId: trainerRow.id,
+        payoutMethod: 'UPI',
+        upiId: 'tara@okbank',
+        payoutDetailsVerifiedAt: new Date(),
+      },
+      update: { payoutMethod: 'UPI', upiId: 'tara@okbank', payoutDetailsVerifiedAt: new Date() },
     });
     await ctx
       .http()
@@ -385,7 +411,7 @@ describe('platform settings', () => {
       .http()
       .post('/exams')
       .set(auth(trainer))
-      .send({ title: 'Second exam', ...window() })
+      .send({ title: 'Second exam', ...upcoming() })
       .expect(201);
     await ctx
       .http()
@@ -418,7 +444,7 @@ describe('platform settings', () => {
       .http()
       .post('/exams')
       .set(auth(trainer))
-      .send({ title: 'Third exam', ...window() })
+      .send({ title: 'Third exam', ...upcoming() })
       .expect(201);
     await ctx
       .http()

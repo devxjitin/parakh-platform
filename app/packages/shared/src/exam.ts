@@ -59,6 +59,25 @@ export const studentFeeSchema = z
   .max(10_000_00, 'Fee can be at most ₹10,000')
   .refine((v) => v === 0 || v >= 100, 'Fee must be 0 (free) or at least ₹1');
 
+/**
+ * Admin-only fields: an always-open exam and how it appears on the public "Available exams" list.
+ * Every always-open exam is listed once published (retiring it takes it off), so there is no
+ * switch for that; the summary and topics are required for it.
+ */
+const catalogFields = {
+  alwaysOpen: z.boolean(),
+  catalogSummary: z
+    .string()
+    .trim()
+    .max(300, 'Keep the summary under 300 characters')
+    .optional()
+    .nullable(),
+  catalogCategory: z.string().trim().max(40, 'At most 40 characters').optional(),
+  catalogTopics: z
+    .array(z.string().trim().min(1, 'A topic cannot be empty').max(40, 'At most 40 characters'))
+    .max(12, 'At most 12 topics'),
+};
+
 const windowIsValid = (v: { startsAt?: string | null; endsAt?: string | null }) =>
   !v.startsAt || !v.endsAt || new Date(v.endsAt) > new Date(v.startsAt);
 const windowMessage = { message: 'The end time must be after the start time', path: ['endsAt'] };
@@ -162,12 +181,34 @@ export const createExamSchema = z
     paperPlan: paperPlanSchema.optional(),
     /** NandiVex-run exams only (ignored for trainers). */
     studentFeePaise: studentFeeSchema.optional(),
+    /** NandiVex-run exams only (ignored for trainers). */
+    alwaysOpen: catalogFields.alwaysOpen.optional(),
+    catalogSummary: catalogFields.catalogSummary,
+    catalogTopics: catalogFields.catalogTopics.optional(),
+    catalogCategory: catalogFields.catalogCategory,
   })
-  .refine(windowIsValid, windowMessage);
+  .refine(windowIsValid, windowMessage)
+  .refine((v) => !v.alwaysOpen || Boolean(v.catalogSummary?.trim()), {
+    message: 'Write a short summary students will see in the exam list',
+    path: ['catalogSummary'],
+  })
+  .refine((v) => !v.alwaysOpen || (v.catalogTopics?.length ?? 0) > 0, {
+    message: 'Add at least one topic',
+    path: ['catalogTopics'],
+  })
+  .refine((v) => !v.alwaysOpen || Boolean(v.catalogCategory?.trim()), {
+    message: 'Choose the category this exam belongs to',
+    path: ['catalogCategory'],
+  });
 export type CreateExamInput = z.infer<typeof createExamSchema>;
 
 export const updateExamSchema = z
-  .object({ ...examSettings, studentFeePaise: studentFeeSchema, paperPlan: paperPlanSchema })
+  .object({
+    ...examSettings,
+    ...catalogFields,
+    studentFeePaise: studentFeeSchema,
+    paperPlan: paperPlanSchema,
+  })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' })
   .refine(windowIsValid, windowMessage);
@@ -288,6 +329,8 @@ export interface ExamSummaryDto {
   id: string;
   title: string;
   status: string;
+  /** Always open (NandiVex-run): no window, one attempt per payment. Fixed when the exam is created. */
+  alwaysOpen: boolean;
   durationMinutes: number;
   startsAt: string | null;
   endsAt: string | null;
@@ -315,6 +358,11 @@ export interface ExamDetailDto extends ExamSummaryDto {
   sponsoredCount: number;
   /** What students pay (NandiVex-run exams); null means the standard platform fee. */
   studentFeePaise: number | null;
+  listedPublicly: boolean;
+  catalogSummary: string | null;
+  catalogTopics: string[];
+  /** The field the exam is filed under on the public list (empty = Other). */
+  catalogCategory: string;
   /** Share code; set once the creation fee is paid. */
   code: string | null;
   publishedAt: string | null;

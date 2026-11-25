@@ -23,8 +23,9 @@ export default function RefundPolicyPage() {
           discretion.
         </li>
         <li>
-          <b>The trainer cancels the exam:</b> the fee is not refunded. A cancelled exam cannot be
-          joined or started any more.
+          <b>The trainer cancels the exam:</b> if you had not started it, your fee is refunded in full
+          automatically to the original payment source, and you get an email. If you had already
+          started, the fee is not refunded. A cancelled exam cannot be joined or started any more.
         </li>
         <li>
           <b>Withdrawal or change of mind:</b> once you have paid for an exam seat, the fee is not
@@ -43,7 +44,9 @@ export default function RefundPolicyPage() {
           are still unused after the exam closes are not refunded.
         </li>
         <li>
-          <b>If you cancel an exam</b> that students have paid for, their fees are not refunded.
+          <b>If you cancel an exam</b> that students have paid for, every student who had not started
+          is refunded automatically and your share of those fees is reversed. Students who had
+          already started are not refunded.
         </li>
       </ul>
 

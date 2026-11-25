@@ -4,7 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../common/decorators';
 import { SettingsService } from '../settings/settings.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { computeJoinState, examJoinFee, normalizeCode } from './join-state';
+import { canRetake, computeJoinState, examJoinFee, normalizeCode } from './join-state';
 
 @Injectable()
 export class EnrollmentsService {
@@ -33,7 +33,7 @@ export class EnrollmentsService {
     const exam = await this.prisma.exam.findUnique({
       where: { code: normalizeCode(rawCode) },
       include: {
-        questions: { select: { marks: true } },
+        questions: { select: { marks: true, type: true } },
         examiner: { select: { name: true, examinerProfile: { select: { orgName: true } } } },
       },
     });
@@ -60,6 +60,8 @@ export class EnrollmentsService {
           : examJoinFee(exam, (await this.settings.get()).examJoinPaise),
       nandivexHosted: exam.nandivexHosted,
       sponsored: exam.sponsoredEmails.length > 0,
+      alwaysOpen: exam.alwaysOpen,
+      hasWrittenQuestions: exam.questions.some((q) => q.type === 'SUBJECTIVE'),
       // Who is asking is not known yet, so "already joined" is answered by myForCode.
       state: computeJoinState({
         startsAt: exam.startsAt,
@@ -85,7 +87,14 @@ export class EnrollmentsService {
       orderBy: { createdAt: 'desc' },
       include: {
         exam: {
-          select: { id: true, title: true, startsAt: true, endsAt: true, durationMinutes: true },
+          select: {
+            id: true,
+            title: true,
+            startsAt: true,
+            endsAt: true,
+            durationMinutes: true,
+            alwaysOpen: true,
+          },
         },
         attempt: {
           select: {
@@ -96,6 +105,7 @@ export class EnrollmentsService {
             maxScore: true,
             percent: true,
             passed: true,
+            resultEmailedAt: true,
           },
         },
       },
@@ -103,7 +113,8 @@ export class EnrollmentsService {
     const now = new Date();
     return rows.map((r) => {
       const open =
-        (!r.exam.startsAt || r.exam.startsAt <= now) && (!r.exam.endsAt || r.exam.endsAt > now);
+        r.exam.alwaysOpen ||
+        ((!r.exam.startsAt || r.exam.startsAt <= now) && (!r.exam.endsAt || r.exam.endsAt > now));
       const attemptDone = r.attempt && r.attempt.status !== 'IN_PROGRESS';
       const running = r.attempt && r.attempt.status === 'IN_PROGRESS' && r.attempt.deadlineAt > now;
       return {
@@ -132,6 +143,9 @@ export class EnrollmentsService {
               }
             : null,
         canStart: !attemptDone && (Boolean(running) || open),
+        canRetake:
+          r.supersededAt === null &&
+          canRetake({ exam: { alwaysOpen: r.exam.alwaysOpen }, attempt: r.attempt }),
       };
     });
   }

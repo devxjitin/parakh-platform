@@ -69,9 +69,9 @@ export default function PrivacyPage() {
         deletion request your name, email and phone are anonymised and your sign-in is removed;
         payment, ledger and certificate records are kept as described above. Sign in and open{' '}
         <b>Profile &gt; Your data</b> to download everything we hold about you as a file, or to
-        close your account. Trainers must first close or cancel open exams and be paid out.
-        [Grievance officer name and contact, as required under Indian law, to be added.] For
-        anything else, contact us through the <a href="/contact/">contact page</a>.
+        close your account. Trainers must first close or cancel open exams and be paid out. Our
+        grievance officer is Sonia Dahiya; see the <a href="/contact/">contact page</a> for how to
+        reach them. For anything else, contact us through the <a href="/contact/">contact page</a>.
       </p>
 
       <h2>6. Security</h2>

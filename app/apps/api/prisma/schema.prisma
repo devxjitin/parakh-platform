@@ -121,42 +121,54 @@ enum StrikePolicy {
 }
 
 model Exam {
-  id                 String       @id @default(uuid()) @db.Uuid
-  examinerId         String       @db.Uuid
-  title              String
-  description        String?
-  instructions       String?
-  status             ExamStatus   @default(DRAFT)
-  durationMinutes    Int          @default(60)
-  startsAt           DateTime?
-  endsAt             DateTime?
-  passPercent        Float        @default(40)
-  shuffleQuestions   Boolean      @default(true)
-  shuffleOptions     Boolean      @default(true)
+  id                    String       @id @default(uuid()) @db.Uuid
+  examinerId            String       @db.Uuid
+  title                 String
+  description           String?
+  instructions          String?
+  status                ExamStatus   @default(DRAFT)
+  durationMinutes       Int          @default(60)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  passPercent           Float        @default(40)
+  shuffleQuestions      Boolean      @default(true)
+  shuffleOptions        Boolean      @default(true)
   // OFF: events are only logged. WARN: strikes are counted and shown. AUTO_SUBMIT: submit at maxStrikes.
-  strikePolicy       StrikePolicy @default(AUTO_SUBMIT)
-  maxStrikes         Int          @default(3)
+  strikePolicy          StrikePolicy @default(AUTO_SUBMIT)
+  maxStrikes            Int          @default(3)
   // Certificate logo for this exam (private S3 key). Falls back to the trainer's default logo.
-  logoKey            String?
+  logoKey               String?
   // Created by an admin: NandiVex runs the exam itself, so there is no creation fee and no trainer share.
-  nandivexHosted     Boolean      @default(false)
+  nandivexHosted        Boolean      @default(false)
   // What a student pays to join, in paise (NandiVex-run exams). 0 = free; null = the platform fee.
-  studentFeePaise    Int?
+  studentFeePaise       Int?
   // Trainer-pays mode: the students (emails) whose seats the trainer bought at publish time. Empty = students pay.
-  sponsoredEmails    String[]     @default([])
+  sponsoredEmails       String[]     @default([])
+  // Admin-made exam that is always open: no start or end time, sold for good, one attempt per payment.
+  // Each attempt is released to the student on its own (there is no exam-wide "publish results").
+  alwaysOpen            Boolean      @default(false)
+  // Shown on the public "Available exams" list (landing page and app) while published.
+  listedPublicly        Boolean      @default(false)
+  catalogSummary        String?
+  catalogTopics         String[]     @default([])
+  // The field the exam belongs to (Programming, Cloud, ...): a filter on the public list. Empty = Other.
+  catalogCategory       String       @default("")
   // Certificate settings (layout, colours, wording); null means the defaults.
-  certificate        Json?
+  certificate           Json?
   // The paper plan from the New exam workflow: total questions, plus how many are MCQ and how many subjective.
-  paperPlan          Json?
+  paperPlan             Json?
   // The AI Paper Builder brief (topics, counts, language...). Only the brief, never the AI's answer.
-  aiBrief            Json?
+  aiBrief               Json?
   // Share code (e.g. NVX-7K3P9Q), generated when the creation fee is captured.
-  code               String?      @unique
-  publishedAt        DateTime?
+  code                  String?      @unique
+  publishedAt           DateTime?
   // Set when the trainer publishes results to students.
-  resultsPublishedAt DateTime?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  resultsPublishedAt    DateTime?
+  // Set when the trainer was reminded, then when the admins were told, that results are overdue.
+  resultsReminderSentAt DateTime?
+  resultsEscalatedAt    DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 
   examiner       User             @relation(fields: [examinerId], references: [id], onDelete: Restrict)
   questions      Question[]
@@ -170,6 +182,7 @@ model Exam {
 
   @@index([examinerId, createdAt])
   @@index([status])
+  @@index([listedPublicly, status])
 }
 
 model Question {
@@ -284,30 +297,36 @@ model AuditLog {
 }
 
 model Payment {
-  id                String         @id @default(uuid()) @db.Uuid
+  id                   String         @id @default(uuid()) @db.Uuid
   // Human-friendly receipt number, e.g. PRK-R-000012 (assigned from this sequence).
-  receiptNo         Int            @unique @default(autoincrement())
-  userId            String         @db.Uuid
-  examId            String?        @db.Uuid
-  purpose           PaymentPurpose
+  receiptNo            Int            @unique @default(autoincrement())
+  userId               String         @db.Uuid
+  examId               String?        @db.Uuid
+  purpose              PaymentPurpose
   // Integer paise. GST-inclusive.
-  amountPaise       Int
-  currency          String         @default("INR")
-  provider          String
-  providerOrderId   String         @unique
-  providerPaymentId String?        @unique
-  status            PaymentStatus  @default(CREATED)
-  failureReason     String?
+  amountPaise          Int
+  currency             String         @default("INR")
+  provider             String
+  providerOrderId      String         @unique
+  providerPaymentId    String?        @unique
+  status               PaymentStatus  @default(CREATED)
+  failureReason        String?
   // Seats bought in one order (sponsored seats); 1 for everything else.
-  quantity          Int            @default(1)
-  capturedAt        DateTime?
-  refundedAt        DateTime?
-  refundReason      String?
-  refundId          String?
+  quantity             Int            @default(1)
+  // Sponsored students bought with a creation payment, frozen at order time. Seats are made from
+  // this list on capture, never from the exam row, so the amount paid always matches the seats.
+  sponsoredEmails      String[]       @default([])
+  // The trainer's share percent that applied when a join order was made. The ledger split uses
+  // this, so an admin changing the percent later never changes an order that is already open.
+  examinerSharePercent Int?
+  capturedAt           DateTime?
+  refundedAt           DateTime?
+  refundReason         String?
+  refundId             String?
   // Paid but nothing was delivered (no seat, exam deleted): needs a manual refund.
-  needsRefund       Boolean        @default(false)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  needsRefund          Boolean        @default(false)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
   exam          Exam?          @relation(fields: [examId], references: [id], onDelete: SetNull)
@@ -364,6 +383,10 @@ model Enrollment {
   reminderSentAt DateTime?
   // Extra time for this student (accommodation), set by the trainer. Added to the exam duration.
   extraMinutes   Int       @default(0)
+  // Set when the student took an always-open exam again after their result went out. The old seat
+  // and its attempt stay as history. Only one seat per student and exam has this empty, which the
+  // database enforces with a partial unique index (see the exam_retake migration).
+  supersededAt   DateTime?
   createdAt      DateTime  @default(now())
 
   exam    Exam     @relation(fields: [examId], references: [id], onDelete: Restrict)
@@ -371,7 +394,7 @@ model Enrollment {
   payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   attempt Attempt?
 
-  @@unique([examId, studentId])
+  @@index([examId, studentId])
   @@index([studentId])
 }
 
@@ -412,9 +435,9 @@ model Attempt {
   // When the last strike was counted; the conditional update on it keeps strikes from doubling.
   lastStrikeAt         DateTime?
 
-  enrollment Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
-  exam       Exam             @relation(fields: [examId], references: [id], onDelete: Restrict)
-  student    User             @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  exam       Exam           @relation(fields: [examId], references: [id], onDelete: Restrict)
+  student    User           @relation(fields: [studentId], references: [id], onDelete: Restrict)
   answers    Answer[]
   events     ProctorEvent[]
 
@@ -665,4 +688,12 @@ model PlatformSetting {
   value     Json
   updatedAt DateTime @updatedAt
   updatedBy String?  @db.Uuid
+}
+
+/// The fields (categories) an always-open exam is filed under on the public "Available exams" list.
+/// An admin manages the list; an always-open exam must pick one of them (its name is stored on the exam).
+model ExamCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
 }

@@ -10,6 +10,7 @@ import {
 } from '@parakh/shared';
 import {
   ScheduleFields,
+  checkClosing,
   checkStart,
   toStartValue,
   type StartErrors,
@@ -50,25 +51,38 @@ export function PaperPlanStep({
   busy = false,
   error: externalError = '',
   initialStartsAt = null,
+  initialEndsAt = null,
   durationMinutes,
+  alwaysOpen = false,
 }: {
+  alwaysOpen?: boolean;
   initial: PaperPlan | null;
   /** Leave out to hide the Back button (when the plan is edited on its own). */
   onBack?: () => void;
-  onNext: (plan: PaperPlan, startsAt: string | null) => void;
+  onNext: (plan: PaperPlan, startsAt: string | null, endsAt: string | null) => void;
   /** Stores the plan and start time (edit page). Throws with a readable message when it fails. */
-  save?: (plan: PaperPlan, startsAt: string | null) => Promise<void>;
+  save?: (plan: PaperPlan, startsAt: string | null, endsAt: string | null) => Promise<void>;
   /** When given, there is no button: the page saves this step when the trainer presses Next. */
   registerSave?: RegisterSave;
   nextLabel?: string;
   busy?: boolean;
   error?: string;
   initialStartsAt?: string | null;
+  /** The closing time on the exam. Only one later than start plus duration counts as chosen. */
+  initialEndsAt?: string | null;
   /** Duration from the Basics step, used to warn when the exam would already be over. */
   durationMinutes?: number;
 }) {
   const [start, setStart] = useState<StartValue>(toStartValue(initialStartsAt));
   const [startErrors, setStartErrors] = useState<StartErrors>({});
+  const [closing, setClosing] = useState<StartValue>(() => {
+    if (!initialEndsAt || !initialStartsAt) return toStartValue(null);
+    const automatic = new Date(initialStartsAt).getTime() + (durationMinutes ?? 0) * 60_000;
+    return new Date(initialEndsAt).getTime() > automatic
+      ? toStartValue(initialEndsAt)
+      : toStartValue(null);
+  });
+  const [closingErrors, setClosingErrors] = useState<StartErrors>({});
   const [total, setTotal] = useState(initial ? String(initial.totalQuestions) : '');
   const [rows, setRows] = useState<Record<Kind, Row>>({
     SINGLE: {
@@ -117,8 +131,8 @@ export function PaperPlanStep({
 
   /** Reads the form: the plan and start time when they are valid, otherwise what is wrong. */
   function build():
-    | { ok: true; plan: PaperPlan; startsAt: string | null }
-    | { ok: false; problem: string; startErrors?: StartErrors } {
+    | { ok: true; plan: PaperPlan; startsAt: string | null; endsAt: string | null }
+    | { ok: false; problem: string; startErrors?: StartErrors; closingErrors?: StartErrors } {
     // A kind with no questions does not need marks.
     const marksOf = (k: Kind) =>
       !chosen[k] || (n(k) === 0 && rows[k].marks.trim() === '') ? 0 : num(rows[k].marks);
@@ -138,7 +152,10 @@ export function PaperPlanStep({
     if (!parsed.success) {
       return { ok: false, problem: parsed.error.issues[0]?.message ?? 'Check the plan' };
     }
-    const when = checkStart(start, { required: true, durationMinutes });
+    // An always-open exam has no start time to choose.
+    const when = alwaysOpen
+      ? { iso: null, errors: {} as StartErrors }
+      : checkStart(start, { required: true, durationMinutes });
     if (when.errors.date || when.errors.time) {
       return {
         ok: false,
@@ -146,18 +163,25 @@ export function PaperPlanStep({
         startErrors: when.errors,
       };
     }
-    return { ok: true, plan: parsed.data, startsAt: when.iso };
+    const end = alwaysOpen
+      ? { iso: null, errors: {} as StartErrors }
+      : checkClosing(closing, when.iso, durationMinutes);
+    if (end.errors.date || end.errors.time) {
+      return { ok: false, problem: 'Check the closing time.', closingErrors: end.errors };
+    }
+    return { ok: true, plan: parsed.data, startsAt: when.iso, endsAt: end.iso };
   }
 
   function next() {
     const r = build();
     setStartErrors(r.ok ? {} : (r.startErrors ?? {}));
+    setClosingErrors(r.ok ? {} : (r.closingErrors ?? {}));
     if (!r.ok) {
       setError(r.startErrors ? 'Please choose when the exam starts.' : r.problem);
       return;
     }
     setError('');
-    onNext(r.plan, r.startsAt);
+    onNext(r.plan, r.startsAt, r.endsAt);
   }
 
   // Saved when the trainer presses Next. Returns why it could not be saved, or null.
@@ -165,22 +189,23 @@ export function PaperPlanStep({
   useEffect(() => {
     if (!registerSave) return;
     const r = build();
-    lastSaved.current = r.ok ? JSON.stringify([r.plan, r.startsAt]) : '';
+    lastSaved.current = r.ok ? JSON.stringify([r.plan, r.startsAt, r.endsAt]) : '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerSave]);
   useStepSave(registerSave, async () => {
     const r = build();
     setStartErrors(r.ok ? {} : (r.startErrors ?? {}));
+    setClosingErrors(r.ok ? {} : (r.closingErrors ?? {}));
     if (!r.ok) {
       const message = r.startErrors ? 'Please choose when the exam starts.' : r.problem;
       setError(message);
       return message;
     }
     setError('');
-    const key = JSON.stringify([r.plan, r.startsAt]);
+    const key = JSON.stringify([r.plan, r.startsAt, r.endsAt]);
     if (key === lastSaved.current) return null;
     try {
-      await save?.(r.plan, r.startsAt);
+      await save?.(r.plan, r.startsAt, r.endsAt);
       lastSaved.current = key;
       return null;
     } catch (err) {
@@ -328,14 +353,28 @@ export function PaperPlanStep({
         );
       })()}
 
-      <ScheduleFields
-        value={start}
-        onChange={(v) => {
-          setStart(v);
-          setStartErrors({});
-        }}
-        errors={startErrors}
-      />
+      {alwaysOpen ? (
+        <p className="card-sub">
+          This exam is always open: students can start any time after they pay, so there is no start
+          time to choose.
+        </p>
+      ) : (
+        <ScheduleFields
+          value={start}
+          onChange={(v) => {
+            setStart(v);
+            setStartErrors({});
+          }}
+          errors={startErrors}
+          closing={closing}
+          onClosingChange={(v) => {
+            setClosing(v);
+            setClosingErrors({});
+          }}
+          closingErrors={closingErrors}
+          durationMinutes={durationMinutes}
+        />
+      )}
 
       {registerSave ? null : (
         <div className="form-actions">

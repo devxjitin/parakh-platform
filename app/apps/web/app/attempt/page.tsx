@@ -51,7 +51,6 @@ export default function AttemptPage() {
   const [fatal, setFatal] = useState('');
   const [remaining, setRemaining] = useState<number | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('saved');
-  const [begun, setBegun] = useState(false);
   const [fullscreen, setFullscreen] = useState(true);
   const [warning, setWarning] = useState('');
   const [confirmSubmit, setConfirmSubmit] = useState(false);
@@ -157,6 +156,8 @@ export default function AttemptPage() {
   }, [id, user]);
 
   const live = attempt?.status === 'IN_PROGRESS';
+  // There is no separate start screen: an open exam goes straight to the questions.
+  const begun = live;
   const attemptId = attempt?.id;
   const deadlineAt = attempt?.deadlineAt;
 
@@ -436,20 +437,29 @@ export default function AttemptPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [live, saveState, unsaved, begun]);
 
-  function begin() {
-    // Do not wait for the browser: some refuse or never answer, and the exam must still start.
-    if (typeof document.documentElement.requestFullscreen === 'function') {
+  // Browsers only allow full screen after a click or key press, so ask on the first one.
+  useEffect(() => {
+    if (!live) return;
+    if (typeof document.documentElement.requestFullscreen !== 'function') {
+      // iOS Safari and some tablets have no full screen. Note it for the trainer, never penalise.
+      void report('FULLSCREEN_UNSUPPORTED');
+      return;
+    }
+    const enter = () => {
+      if (document.fullscreenElement) return;
       try {
         void document.documentElement.requestFullscreen()?.catch(() => undefined);
       } catch {
         // Refused: the exam proceeds without it.
       }
-    } else {
-      // iOS Safari and some tablets have no full screen. Note it for the trainer, never penalise.
-      void report('FULLSCREEN_UNSUPPORTED');
-    }
-    setBegun(true);
-  }
+    };
+    document.addEventListener('pointerdown', enter, { once: true });
+    document.addEventListener('keydown', enter, { once: true });
+    return () => {
+      document.removeEventListener('pointerdown', enter);
+      document.removeEventListener('keydown', enter);
+    };
+  }, [live, report]);
 
   // ------------------------------------------------------------------ views
   if (loading || !user)
@@ -566,185 +576,6 @@ export default function AttemptPage() {
             <Link href="/" className="btn btn-primary btn-link done-home">
               Go to home page
             </Link>
-          </div>
-        </aside>
-      </main>
-    );
-  }
-
-  if (!begun) {
-    const warnings = `${attempt.strikes} warning${attempt.strikes === 1 ? '' : 's'}`;
-    const late =
-      remaining !== null && remaining < attempt.exam.durationMinutes * 60 - 60
-        ? Math.max(0, Math.ceil(remaining / 60))
-        : null;
-    const nQ = attempt.questions.length;
-    return (
-      <main className="gate gate-start">
-        <section className="wr-hero gate-hero">
-          <h1 className="wr-title">{attempt.exam.title}</h1>
-          <p className="wr-by">
-            By {attempt.exam.trainerName}
-            {attempt.exam.orgName ? `, ${attempt.exam.orgName}` : ''}
-          </p>
-
-          <p className="wr-label">Time left</p>
-          <div
-            className={`gate-clock${remaining !== null && remaining < 300 ? ' low' : ''}`}
-            role="timer"
-            aria-label={remaining === null ? 'Time left' : `Time left ${clock(remaining)}`}
-          >
-            {[
-              ['Hours', remaining === null ? null : Math.floor(remaining / 3600)],
-              ['Minutes', remaining === null ? null : Math.floor((remaining % 3600) / 60)],
-              ['Seconds', remaining === null ? null : remaining % 60],
-            ].map(([unit, value], i) => (
-              <div className="gate-clock-part" key={unit as string}>
-                {i > 0 && <span className="gate-clock-sep">:</span>}
-                <div className="wr-tile">
-                  <span className="wr-digits">
-                    {value === null ? '--' : String(value).padStart(2, '0')}
-                  </span>
-                  <span className="wr-unit">{unit}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {late !== null && (
-            <p className="gs-late">
-              <Icon name="info" size={16} />
-              <span>
-                The full time is {attempt.exam.durationMinutes} minutes, but the exam closes at{' '}
-                {new Date(attempt.deadlineAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-                , so this is all the time you have left.
-              </span>
-            </p>
-          )}
-
-          <div className="gate-info">
-            <div className="gate-info-card">
-              <h3>Exam details</h3>
-              <dl>
-                <div>
-                  <dt>Questions</dt>
-                  <dd>{nQ}</dd>
-                </div>
-                <div>
-                  <dt>Total marks</dt>
-                  <dd>{attempt.exam.totalMarks}</dd>
-                </div>
-                <div>
-                  <dt>Pass mark</dt>
-                  <dd>{attempt.exam.passPercent}%</dd>
-                </div>
-                <div>
-                  <dt>Duration</dt>
-                  <dd>{attempt.exam.durationMinutes} min</dd>
-                </div>
-                {attempt.exam.endsAt && (
-                  <div>
-                    <dt>Closes at</dt>
-                    <dd>
-                      {new Date(attempt.exam.endsAt).toLocaleString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                      })}
-                    </dd>
-                  </div>
-                )}
-                {attempt.exam.code && (
-                  <div>
-                    <dt>Exam code</dt>
-                    <dd>{attempt.exam.code}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-            <div className="gate-info-card">
-              <h3>Candidate</h3>
-              <div className="gate-student">
-                <span className="gate-avatar" aria-hidden="true">
-                  {attempt.student.name.trim().charAt(0).toUpperCase() || 'S'}
-                </span>
-                <div>
-                  <b>{attempt.student.name}</b>
-                  <span>{attempt.student.email}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <aside className="gate-side">
-          {attempt.exam.instructions && (
-            <div className="wr-panel">
-              <h3>Instructions from your trainer</h3>
-              <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{attempt.exam.instructions}</p>
-            </div>
-          )}
-          <div className="wr-panel">
-            <h3>Before you begin</h3>
-            <ul className="gs-rules">
-              <li>
-                <span className="gs-ico">
-                  <Icon name="panel" size={18} />
-                </span>
-                <p>The exam runs full screen. Copy, paste and right-click are disabled.</p>
-              </li>
-              {attempt.strikePolicy === 'AUTO_SUBMIT' && (
-                <li>
-                  <span className="gs-ico warn">
-                    <Icon name="alert" size={18} />
-                  </span>
-                  <p>
-                    Leaving the screen, switching tabs or windows counts as a warning.{' '}
-                    <b>{attempt.maxStrikes} warnings</b> submit your exam automatically. You have{' '}
-                    {warnings} so far.
-                  </p>
-                </li>
-              )}
-              {attempt.strikePolicy === 'WARN' && (
-                <li>
-                  <span className="gs-ico warn">
-                    <Icon name="alert" size={18} />
-                  </span>
-                  <p>
-                    Leaving the screen or switching tabs gives you a warning and your trainer sees
-                    the count, but it will not submit your exam. You have {warnings} so far.
-                  </p>
-                </li>
-              )}
-              {attempt.strikePolicy === 'OFF' && (
-                <li>
-                  <span className="gs-ico">
-                    <Icon name="eye" size={18} />
-                  </span>
-                  <p>
-                    Your trainer is told if you leave the exam screen or switch tabs. Nothing is
-                    submitted for you.
-                  </p>
-                </li>
-              )}
-              <li>
-                <span className="gs-ico">
-                  <Icon name="zap" size={18} />
-                </span>
-                <p>Very short interruptions, like a notification, are ignored.</p>
-              </li>
-              <li>
-                <span className="gs-ico ok">
-                  <Icon name="check" size={18} />
-                </span>
-                <p>Every answer is saved as you go.</p>
-              </li>
-            </ul>
-            <Button onClick={begin}>{nQ ? 'Begin exam' : 'Continue'}</Button>
           </div>
         </aside>
       </main>

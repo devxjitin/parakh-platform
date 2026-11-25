@@ -542,8 +542,8 @@ describe('question images', () => {
 
   it('follows attempt ownership, device binding, results visibility and practice eligibility', async () => {
     const { id } = await newExam(trainer, {
-      startsAt: new Date(Date.now() - 3_600_000).toISOString(),
-      endsAt: new Date(Date.now() + 3_600_000).toISOString(),
+      startsAt: new Date(Date.now() + 3_600_000).toISOString(),
+      endsAt: new Date(Date.now() + 5 * 3_600_000).toISOString(),
     });
     const created = await ctx
       .http()
@@ -570,6 +570,11 @@ describe('question images', () => {
       .set(auth(trainer))
       .send(paid.body)
       .expect(200);
+    // Published with a future start, as required; now let the exam be open.
+    await ctx.prisma.exam.update({
+      where: { id },
+      data: { startsAt: new Date(Date.now() - 3_600_000) },
+    });
     const stranger = await newStudent(ctx, 'stranger@example.com');
     const enrollmentId = await joinExam(ctx, student, published.body.exam.code);
     const device = 'exam-device-student-01';

@@ -58,6 +58,8 @@ export class ResultsDeliveryService implements OnModuleInit, OnModuleDestroy {
           exam: {
             OR: [
               { status: 'RESULTS_FINAL' },
+              // Always-open exams never close: each attempt goes out as soon as it is fully marked.
+              { status: 'PUBLISHED', alwaysOpen: true },
               {
                 status: 'PUBLISHED',
                 endsAt: opts.ignoreDelay ? { lte: now } : { lte: releasedBefore },
@@ -100,6 +102,8 @@ export class ResultsDeliveryService implements OnModuleInit, OnModuleDestroy {
    * Objective-only exams (no written questions) have nothing left for a trainer to mark, so the
    * student's score, answer key and certificate are emailed the moment they finish, without
    * waiting for the exam window to close. Does nothing for papers with written answers.
+   * Always-open exams release every attempt on its own as soon as it is fully marked, so a
+   * written paper goes out the moment the admin finishes marking it.
    */
   async deliverIfObjective(attemptId: string): Promise<boolean> {
     const attempt = await this.prisma.attempt.findUnique({
@@ -107,11 +111,16 @@ export class ResultsDeliveryService implements OnModuleInit, OnModuleDestroy {
       select: {
         status: true,
         resultEmailedAt: true,
-        exam: { select: { questions: { where: { type: 'SUBJECTIVE' }, select: { id: true } } } },
+        exam: {
+          select: {
+            alwaysOpen: true,
+            questions: { where: { type: 'SUBJECTIVE' }, select: { id: true } },
+          },
+        },
       },
     });
     if (!attempt || attempt.status !== 'GRADED' || attempt.resultEmailedAt) return false;
-    if (attempt.exam.questions.length > 0) return false;
+    if (!attempt.exam.alwaysOpen && attempt.exam.questions.length > 0) return false;
     return this.deliver(attemptId);
   }
 

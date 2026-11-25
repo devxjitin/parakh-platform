@@ -13,7 +13,6 @@ import {
 import { AiPaperBuilder } from '../../../components/ai-paper-builder';
 import { Icon, type IconName } from '../../../components/icons';
 import { ExamSettingsForm } from '../../../components/exam-settings-form';
-import { CorrectionsPanel } from '../../../components/corrections-panel';
 import { ExtraTimePanel } from '../../../components/extra-time-panel';
 import { ExamControls } from '../../../components/exam-controls';
 import { PublishPanel } from '../../../components/publish-panel';
@@ -74,9 +73,13 @@ function PlanEditor({
   const plan = exam.paperPlan;
 
   // Saved when the trainer presses Next (see `registerSave`).
-  async function save(next: PaperPlan, startsAt: string | null) {
+  async function save(next: PaperPlan, startsAt: string | null, endsAt: string | null) {
     try {
-      await api(`/exams/${exam.id}`, { method: 'PATCH', body: { paperPlan: next, startsAt } });
+      // endsAt null = closes when its time is up (start plus duration).
+      await api(`/exams/${exam.id}`, {
+        method: 'PATCH',
+        body: { paperPlan: next, startsAt, endsAt },
+      });
     } catch (err) {
       throw new Error(describeError(err).message);
     }
@@ -90,7 +93,9 @@ function PlanEditor({
       <PaperPlanStep
         initial={plan}
         initialStartsAt={exam.startsAt}
+        initialEndsAt={exam.endsAt}
         durationMinutes={exam.durationMinutes}
+        alwaysOpen={exam.alwaysOpen}
         onNext={() => undefined}
         save={save}
         registerSave={registerSave}
@@ -131,7 +136,7 @@ function stepProblem(exam: ExamDetailDto, key: string, payer: PayerChoice): stri
   const plan = exam.paperPlan;
   switch (key) {
     case 'plan':
-      return plan && exam.startsAt
+      return plan && (exam.alwaysOpen || exam.startsAt)
         ? null
         : 'Complete the paper plan (total questions, types and marks) and choose the start time.';
     case 'questions': {
@@ -865,15 +870,12 @@ export default function EditExamPage() {
 
       <section className="card">
         {tab === 'questions' && (
-          <>
-            <QuestionsTab
-              exam={exam}
-              reload={reload}
-              locked={locked}
-              onGoToPlan={() => setTab('plan')}
-            />
-            <CorrectionsPanel exam={exam} reload={reload} />
-          </>
+          <QuestionsTab
+            exam={exam}
+            reload={reload}
+            locked={locked}
+            onGoToPlan={() => setTab('plan')}
+          />
         )}
         {tab === 'settings' &&
           (locked ? (

@@ -177,6 +177,19 @@ describe('students join with a code and an emailed code (no registration)', () =
 });
 
 describe('NandiVex-run exams', () => {
+  /** Publishes (the start must be in the future), then moves the window so the exam is open. */
+  async function publishOpen(admin: { accessToken: string }, examId: string) {
+    const res = await ctx.http().post(`/exams/${examId}/publish`).set(auth(admin)).expect(200);
+    await ctx.prisma.exam.update({
+      where: { id: examId },
+      data: {
+        startsAt: new Date(Date.now() - 3_600_000),
+        endsAt: new Date(Date.now() + 3 * 3_600_000),
+      },
+    });
+    return res;
+  }
+
   async function nandivexExam(settings: Record<string, unknown> = {}) {
     const admin = await createAdmin(ctx);
     const created = (
@@ -187,9 +200,9 @@ describe('NandiVex-run exams', () => {
         .send({
           title: 'NandiVex Open Test',
           durationMinutes: 30,
-          startsAt: hours(-1),
-          endsAt: hours(3),
           ...settings,
+          startsAt: hours(1),
+          endsAt: hours(5),
         })
         .expect(201)
     ).body;
@@ -211,9 +224,7 @@ describe('NandiVex-run exams', () => {
     });
     // the trainer payment route stays trainer-only; admins publish directly
     await ctx.http().post(`/exams/${created.id}/publish-order`).set(auth(admin)).expect(403);
-    const published = (
-      await ctx.http().post(`/exams/${created.id}/publish`).set(auth(admin)).expect(200)
-    ).body;
+    const published = (await publishOpen(admin, created.id)).body;
     expect(published.code).toMatch(/^NVX-/);
     expect(await ctx.prisma.payment.count({ where: { purpose: 'EXAM_CREATION' } })).toBe(0);
     // trainers cannot use the free publish route, and their exams ignore a custom fee
@@ -231,9 +242,7 @@ describe('NandiVex-run exams', () => {
 
   it('charges the student the admin fee and keeps all of it for NandiVex', async () => {
     const { admin, created } = await nandivexExam({ studentFeePaise: 25000 });
-    const { code } = (
-      await ctx.http().post(`/exams/${created.id}/publish`).set(auth(admin)).expect(200)
-    ).body;
+    const { code } = (await publishOpen(admin, created.id)).body;
     expect((await ctx.http().get(`/join/${code}`).expect(200)).body).toMatchObject({
       feePaise: 25000,
       nandivexHosted: true,
@@ -251,9 +260,7 @@ describe('NandiVex-run exams', () => {
 
   it('can be free: no payment, a confirmation email, and a seat straight away', async () => {
     const { admin, created } = await nandivexExam({ studentFeePaise: 0 });
-    const { code } = (
-      await ctx.http().post(`/exams/${created.id}/publish`).set(auth(admin)).expect(200)
-    ).body;
+    const { code } = (await publishOpen(admin, created.id)).body;
     expect((await ctx.http().get(`/join/${code}`).expect(200)).body.feePaise).toBe(0);
     const asha = await joinWithEmail(code, 'asha@example.com');
     await ctx.http().post(`/join/${code}/order`).set(auth(asha)).expect(409);

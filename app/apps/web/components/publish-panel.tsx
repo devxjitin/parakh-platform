@@ -116,6 +116,16 @@ export function PublishPanel({
           </div>
         </section>
 
+        {exam.alwaysOpen && (
+          <p className="pub-note">
+            <Icon name="info" size={16} />
+            <span>
+              This exam is on the Available exams list on the landing page and in the app. Retire it
+              from Manage this exam to take it off.
+            </span>
+          </p>
+        )}
+
         <p className="pub-note">
           <Icon name="info" size={16} />
           <span>
@@ -168,11 +178,20 @@ export function PublishPanel({
 
   const checks: [boolean, string][] = [
     [exam.questionCount > 0, 'At least one question'],
-    [Boolean(exam.startsAt && exam.endsAt), 'The start time is set'],
-    [
-      Boolean(exam.endsAt && new Date(exam.endsAt) > new Date()),
-      'The exam has not already ended (start time plus duration is in the future)',
-    ],
+    // An always-open exam has no window to check.
+    ...(exam.alwaysOpen
+      ? []
+      : ([
+          [Boolean(exam.startsAt && exam.endsAt), 'The start time is set'],
+          [
+            Boolean(exam.startsAt && new Date(exam.startsAt) > new Date()),
+            'The start time is still in the future',
+          ],
+          [
+            Boolean(exam.endsAt && new Date(exam.endsAt) > new Date()),
+            'The exam has not already ended (start time plus duration is in the future)',
+          ],
+        ] as [boolean, string][])),
   ];
   const ready = checks.every(([ok]) => ok);
 
@@ -432,7 +451,7 @@ export function PublishPanel({
             <dl className="pub-fees">
               <div>
                 <dt>
-                  Exam creation fee <small>(inclusive of applicable taxes)</small>
+                  Exam creation fee <small>(final price, no GST added)</small>
                 </dt>
                 <dd>{rupees(PRICING.EXAM_CREATION_PAISE)}</dd>
               </div>

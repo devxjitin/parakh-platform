@@ -32,3 +32,19 @@ export function examJoinFee(
     ? exam.studentFeePaise
     : platformJoinPaise;
 }
+
+/**
+ * An always-open exam can be taken again once the student's result has been emailed. Until then
+ * (still being marked, or still running) the seat stays as it is.
+ */
+export function canRetake(seat: {
+  exam: { alwaysOpen: boolean };
+  attempt: { status: string; resultEmailedAt: Date | null } | null;
+}): boolean {
+  return (
+    seat.exam.alwaysOpen &&
+    seat.attempt !== null &&
+    seat.attempt.status !== 'IN_PROGRESS' &&
+    seat.attempt.resultEmailedAt !== null
+  );
+}

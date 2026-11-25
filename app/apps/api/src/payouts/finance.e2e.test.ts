@@ -36,8 +36,13 @@ const earnings = async () => ({
 const setDetails = () =>
   ctx.prisma.examinerProfile.upsert({
     where: { userId: trainerId },
-    create: { userId: trainerId, payoutMethod: 'UPI', upiId: 'trainer@okbank' },
-    update: { payoutMethod: 'UPI', upiId: 'trainer@okbank' },
+    create: {
+      userId: trainerId,
+      payoutMethod: 'UPI',
+      upiId: 'trainer@okbank',
+      payoutDetailsVerifiedAt: new Date(),
+    },
+    update: { payoutMethod: 'UPI', upiId: 'trainer@okbank', payoutDetailsVerifiedAt: new Date() },
   });
 /** Pays everything that is payable, the way the company does it now. */
 const payAllRaw = (utr: string) =>
@@ -202,11 +207,34 @@ describe('payouts', () => {
     }).expect(409); // exam results are not published
   });
 
-  it('works even if no payout details are saved (the company pays outside the app)', async () => {
+  it('refuses to pay when the payout details are missing or not verified', async () => {
     await students(7);
     await publishResults();
-    const paid = await payAll();
-    expect(paid.status).toBe('PAID');
+    // No details at all.
+    await post(admin, '/admin/finance/payouts', {
+      examinerId: trainerId,
+      amountPaise: 10_000,
+      utr: 'UTR424242',
+    }).expect(409);
+    // Details saved but changed after the last check: verification is reset.
+    await setDetails();
+    await ctx.prisma.examinerProfile.update({
+      where: { userId: trainerId },
+      data: { payoutDetailsVerifiedAt: null },
+    });
+    await post(admin, '/admin/finance/payouts', {
+      examinerId: trainerId,
+      amountPaise: 10_000,
+      utr: 'UTR424242',
+    }).expect(409);
+    expect(await ctx.prisma.payout.count()).toBe(0);
+    // Once an admin verifies them, the same payment goes through.
+    await post(admin, `/admin/finance/examiners/${trainerId}/verify-details`).expect(200);
+    await post(admin, '/admin/finance/payouts', {
+      examinerId: trainerId,
+      amountPaise: 10_000,
+      utr: 'UTR424242',
+    }).expect(200);
   });
 
   it('two simultaneous payouts of the same money pay it once', async () => {
@@ -214,6 +242,30 @@ describe('payouts', () => {
     const results = await Promise.all([payAllRaw('UTR111111'), payAllRaw('UTR222222')]);
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
     expect((await ledger()).paidOutPaise).toBe(52_150);
+  });
+});
+
+describe('trainer share is fixed when the order is made', () => {
+  it('keeps the percent that applied at order time, even if an admin changes it before payment', async () => {
+    const sam = await newStudent(ctx, 'sam@example.com');
+    const order = (await ctx.http().post(`/join/${exam.code}/order`).set(auth(sam)).expect(200))
+      .body;
+    const settings = (await get(admin, '/admin/settings').expect(200)).body;
+    await ctx
+      .http()
+      .put('/admin/settings')
+      .set(auth(admin))
+      .send({ ...settings, examinerSharePercent: 20 })
+      .expect(200);
+    const paid = (
+      await post(sam, '/payments/fake/complete', { orderId: order.orderId }).expect(200)
+    ).body;
+    await post(sam, '/payments/verify', paid).expect(200);
+
+    // 50% of 149.00 (the percent at order time), not 20%
+    expect((await earnings()).balances.accruedPaise).toBe(7_450);
+    const payment = await ctx.prisma.payment.findFirstOrThrow({ where: { purpose: 'EXAM_JOIN' } });
+    expect(payment.examinerSharePercent).toBe(50);
   });
 });
 
@@ -260,6 +312,40 @@ describe('refunds', () => {
     // the seat is free again: the student can join once more
     const again = await newStudent(ctx, 'a2@example.com');
     await joinExam(ctx, again, exam.code);
+  });
+
+  it('cannot start an attempt on a seat whose refund is in progress, and the claim rolls back if one already started', async () => {
+    const a = await joinPayment('a@example.com');
+    const enrollment = await ctx.prisma.enrollment.findFirstOrThrow({
+      where: { paymentId: a.payment.id },
+    });
+    // The refund was claimed (gateway call pending): the student can no longer begin.
+    await ctx.prisma.payment.update({
+      where: { id: a.payment.id },
+      data: { status: 'PENDING_REFUND' },
+    });
+    await ctx
+      .http()
+      .post('/attempts')
+      .set(auth(a.student))
+      .send({ enrollmentId: enrollment.id })
+      .expect(409);
+    expect(await ctx.prisma.attempt.count({ where: { enrollmentId: enrollment.id } })).toBe(0);
+
+    // A student who started in the meantime blocks the claim itself: payment stays CAPTURED.
+    const b = await joinPayment('b@example.com');
+    const enrollmentB = await ctx.prisma.enrollment.findFirstOrThrow({
+      where: { paymentId: b.payment.id },
+    });
+    await ctx
+      .http()
+      .post('/attempts')
+      .set(auth(b.student))
+      .send({ enrollmentId: enrollmentB.id })
+      .expect(200);
+    await refund(b.payment.id).expect(409);
+    const after = await ctx.prisma.payment.findUniqueOrThrow({ where: { id: b.payment.id } });
+    expect(after.status).toBe('CAPTURED');
   });
 
   it('refuses when the student already started the exam, or for creation fees', async () => {

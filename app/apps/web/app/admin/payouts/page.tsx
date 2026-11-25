@@ -108,7 +108,12 @@ function PayRow({ row, onDone }: { row: AdminPayableRow; onDone: () => Promise<v
         <td>
           {!open && (row.request || meets) && row.method && (
             <div className="toolbar">
-              <Button small onClick={() => setOpen(true)}>
+              <Button
+                small
+                disabled={!row.detailsVerified}
+                title={row.detailsVerified ? undefined : 'Mark the payout details as checked first'}
+                onClick={() => setOpen(true)}
+              >
                 {row.request ? 'Mark paid' : 'Pay now'}
               </Button>
               {row.request && (

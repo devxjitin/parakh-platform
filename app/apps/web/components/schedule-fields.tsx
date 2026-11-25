@@ -42,35 +42,69 @@ export function checkStart(
   if (errors.date || errors.time) return { iso: null, errors };
   const d = new Date(`${v.date}T${v.time}`);
   if (Number.isNaN(d.getTime())) return { iso: null, errors: { date: 'Enter a valid start date' } };
-  if (
-    opts.required &&
-    opts.durationMinutes &&
-    d.getTime() + opts.durationMinutes * 60_000 <= Date.now()
-  ) {
-    return { iso: null, errors: { date: 'The exam would already be over at this time' } };
+  // The start is checked again when the exam is published, but say so here as early as possible.
+  if (opts.required && d.getTime() <= Date.now()) {
+    return { iso: null, errors: { date: 'Choose a start time in the future' } };
   }
   return { iso: d.toISOString(), errors };
 }
 
-/** Start date + clock-face start time, side by side. Controlled by the parent. */
+/**
+ * The optional closing time. Left blank, the exam closes when its time is up (start plus
+ * duration). A later closing time keeps it open for students to join until then: each student's
+ * own time still runs from when they start, and is cut short only by the closing time.
+ */
+export function checkClosing(
+  v: StartValue,
+  startIso: string | null,
+  durationMinutes: number | undefined,
+): { iso: string | null; errors: StartErrors } {
+  if (!v.date && !v.time) return { iso: null, errors: {} };
+  const errors: StartErrors = {};
+  if (!v.date) errors.date = 'Choose the closing date';
+  if (!v.time) errors.time = 'Choose the closing time';
+  if (errors.date || errors.time) return { iso: null, errors };
+  const d = new Date(`${v.date}T${v.time}`);
+  if (Number.isNaN(d.getTime())) {
+    return { iso: null, errors: { date: 'Enter a valid closing date' } };
+  }
+  if (startIso && durationMinutes) {
+    const earliest = new Date(startIso).getTime() + durationMinutes * 60_000;
+    if (d.getTime() < earliest) {
+      return {
+        iso: null,
+        errors: {
+          date: `Closing time must be at least ${durationMinutes} minutes after the start, so the full exam fits`,
+        },
+      };
+    }
+  }
+  return { iso: d.toISOString(), errors };
+}
+
+/** Start date and time, plus an optional closing date and time. Controlled by the parent. */
 export function ScheduleFields({
   value,
   onChange,
   errors,
-  endsAt,
+  closing,
+  onClosingChange,
+  closingErrors,
+  durationMinutes,
 }: {
   value: StartValue;
   onChange: (next: StartValue) => void;
   errors: StartErrors;
-  endsAt?: string | null;
+  closing: StartValue;
+  onClosingChange: (next: StartValue) => void;
+  closingErrors: StartErrors;
+  durationMinutes?: number;
 }) {
   return (
     <section className="form-section form-full">
       <h3>Schedule</h3>
       <p className="card-sub">
-        Choose when the exam starts. It closes by itself when its time is up: the start time plus
-        the duration from the Basics step.
-        {endsAt && <> It currently closes at {new Date(endsAt).toLocaleString()}.</>}
+        Choose when the exam starts. The start time must still be in the future when you publish.
       </p>
       <div className="field-row field-row-2">
         <DatePicker
@@ -88,6 +122,28 @@ export function ScheduleFields({
           defaultValue={value.time}
           error={errors.time}
           onChange={(time) => onChange({ ...value, time })}
+        />
+      </div>
+      <p className="card-sub" style={{ marginTop: 18 }}>
+        Closing time (optional). Leave it empty and the exam closes when its time is up
+        {durationMinutes ? ` (${durationMinutes} minutes after the start)` : ''}. Set a later
+        closing time to let students join any time until then. Each student still gets the full
+        duration from when they start, but never past the closing time.
+      </p>
+      <div className="field-row field-row-2">
+        <DatePicker
+          label="Closing date"
+          name="endsDate"
+          value={closing.date}
+          onChange={(date) => onClosingChange({ ...closing, date })}
+          error={closingErrors.date}
+        />
+        <TimePicker
+          label="Closing time"
+          name="endsTime"
+          defaultValue={closing.time}
+          error={closingErrors.time}
+          onChange={(time) => onClosingChange({ ...closing, time })}
         />
       </div>
     </section>
