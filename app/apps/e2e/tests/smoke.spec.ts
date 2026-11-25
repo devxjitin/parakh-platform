@@ -137,7 +137,6 @@ test('join with a code and an emailed code, take the exam on a phone and submit'
   await page.getByRole('button', { name: /Pay .* and join/ }).click();
   // Paying confirms the seat and takes the student straight into the exam.
   await page.waitForURL(/attempt/);
-  await page.getByRole('button', { name: 'Begin exam' }).click();
 
   // The questions come in a random order, so answer whatever is on screen.
   for (let i = 0; i < 3; i++) {
