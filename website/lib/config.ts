@@ -9,12 +9,19 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000
 /** A link into the app, for example appUrl('/login/'). */
 export const appUrl = (path: string) => `${APP_URL}${path}`;
 
-/** Keep in sync with PRICING in the app's shared package. */
+/** Fallback prices, used until the live ones load. Keep in sync with PRICING in the shared package. */
 export const PRICING = {
   EXAM_CREATION_PAISE: 99_00,
   EXAM_JOIN_PAISE: 49_00,
   EXAMINER_SHARE_PERCENT: 50,
 } as const;
+
+/** The live prices from the API (admin Settings); the fallback above shows until they arrive. */
+export interface LivePricing {
+  EXAM_CREATION_PAISE: number;
+  EXAM_JOIN_PAISE: number;
+  EXAMINER_SHARE_PERCENT: number;
+}
 
 export const formatInr = (paise: number) => `₹${(paise / 100).toFixed(2)}`;
 

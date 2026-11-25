@@ -382,3 +382,25 @@ describe('always-open exams', () => {
     expect(new Date(attempt.deadlineAt).getTime()).toBeGreaterThan(Date.now() + 20 * 60_000);
   });
 });
+
+describe('public pricing', () => {
+  it('shows the live platform prices to anyone, and follows an admin change', async () => {
+    const before = (await ctx.http().get('/catalog/pricing').expect(200)).body;
+    expect(before).toEqual({
+      examCreationPaise: expect.any(Number),
+      examJoinPaise: expect.any(Number),
+      examinerSharePercent: expect.any(Number),
+    });
+    await ctx.prisma.platformSetting.upsert({
+      where: { key: 'platform' },
+      create: {
+        key: 'platform',
+        value: { ...before, examJoinPaise: 12_300, minPayoutPaise: 50_000 },
+        updatedBy: null,
+      },
+      update: { value: { ...before, examJoinPaise: 12_300, minPayoutPaise: 50_000 } },
+    });
+    const after = (await ctx.http().get('/catalog/pricing').expect(200)).body;
+    expect(after.examJoinPaise).toBe(12_300);
+  });
+});

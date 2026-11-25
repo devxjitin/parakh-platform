@@ -1,6 +1,7 @@
 'use client';
 
-import { PRICING, appUrl, formatInr } from '../lib/config';
+import { appUrl, formatInr } from '../lib/config';
+import { usePricing } from '../lib/use-pricing';
 import { Icon, type IconName } from '../components/icons';
 import { AvailableExams } from '../components/available-exams';
 import { CertificateCheck } from '../components/certificate-check';
@@ -37,13 +38,13 @@ const FEATURES: { icon: IconName; tone: string; title: string; text: string }[] 
     icon: 'zap',
     tone: 'sky',
     title: 'Grading and results',
-    text: 'Choice questions are marked the moment a student submits. Mark written answers yourself, fix an answer key later, give extra time to one student and publish results when you are ready.',
+    text: 'Choice questions are marked the moment a student submits. Mark written answers yourself, give one student a mark by hand or extra time, and publish results when you are ready.',
   },
   {
     icon: 'join',
     tone: 'emerald',
-    title: 'Join without an account',
-    text: 'Students enter the exam code, their name and email, and confirm with a one-time code. A live waiting room then starts the exam by itself at the scheduled time.',
+    title: 'Join with just an email',
+    text: 'Students enter the exam code, their name and email, and confirm with a one-time code. No password to remember. A live waiting room then starts the exam by itself at the scheduled time.',
   },
   {
     icon: 'award',
@@ -75,7 +76,7 @@ const TRAINER_STEPS = [
 const STUDENT_STEPS = [
   {
     title: 'Join with the exam code',
-    text: 'Enter the code, your name and email, and confirm with a one-time code. No account to create.',
+    text: 'Enter the code, your name and email, and confirm with a one-time code. No password to remember.',
   },
   {
     title: 'Wait in the lobby, then begin',
@@ -87,13 +88,14 @@ const STUDENT_STEPS = [
   },
 ];
 
-const STATS: { value: string; label: string }[] = [
+const statsFor = (sharePercent: number): { value: string; label: string }[] => [
   { value: '3', label: 'question types in one paper' },
-  { value: '0', label: 'accounts students need to create' },
-  { value: '1', label: 'QR code on every certificate' },
+  { value: `${sharePercent}%`, label: 'of every student fee goes to the trainer' },
+  { value: 'QR', label: 'on every certificate, checkable online' },
 ];
 
 export default function HomePage() {
+  const PRICING = usePricing();
   return (
     <LandingFrame>
       {/* ---------- hero ---------- */}
@@ -127,7 +129,7 @@ export default function HomePage() {
             </div>
             <ul className="lp-checks" style={{ ['--d' as string]: '320ms' }}>
               <li>
-                <Icon name="check" size={16} /> No account for students
+                <Icon name="check" size={16} /> No password for students
               </li>
               <li>
                 <Icon name="check" size={16} /> Tab-switch strikes you control
@@ -243,7 +245,7 @@ export default function HomePage() {
             ))}
           </div>
           <Reveal className="lp-stats">
-            {STATS.map((s) => (
+            {statsFor(PRICING.EXAMINER_SHARE_PERCENT).map((s) => (
               <div key={s.label}>
                 <b>{s.value}</b>
                 <span>{s.label}</span>
@@ -407,8 +409,11 @@ export default function HomePage() {
         <div className="lp-container">
           <Reveal className="lp-head lp-head-center">
             <span className="lp-eyebrow">Pricing</span>
-            <h2>Pay per exam. Nothing else.</h2>
-            <p>No subscription and no set-up fee.</p>
+            <h2>Pay per exam. No subscription.</h2>
+            <p>
+              No set-up fee. A trainer can also pay for chosen students&apos; seats while
+              publishing; those students then join for free.
+            </p>
           </Reveal>
           <div className="lp-pricing">
             <Reveal className="lp-price">
@@ -445,7 +450,7 @@ export default function HomePage() {
               <div className="lp-price-amt">
                 {formatInr(PRICING.EXAM_JOIN_PAISE)} <small>per exam</small>
               </div>
-              <p>Join with an exam code and earn a verified certificate. No account needed.</p>
+              <p>Join with an exam code and earn a verified certificate. No password to remember.</p>
               <ul>
                 <li>
                   <Icon name="check" size={16} /> A full-screen waiting room that starts the exam
@@ -454,7 +459,7 @@ export default function HomePage() {
                   <Icon name="check" size={16} /> A timed exam that saves as you go
                 </li>
                 <li>
-                  <Icon name="check" size={16} /> Score and answer key by email after you submit
+                  <Icon name="check" size={16} /> Score and certificate by email (right after you submit for choice-only exams)
                 </li>
                 <li>
                   <Icon name="check" size={16} /> A verified certificate with a QR code
