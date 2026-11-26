@@ -1261,7 +1261,7 @@ body:has(.attempt-page) .site-footer {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
-  margin: 16px 0 !important;
+  margin: 16px 0;
 }
 .attempt-main .field {
   flex: 1;
@@ -2433,8 +2433,8 @@ body:has(.app) > .site-footer {
   font-weight: 700;
   color: var(--text);
 }
-.time-pop-empty {
-  color: var(--text-dim) !important;
+.time-pop-head .time-pop-empty {
+  color: var(--text-dim);
 }
 .time-cols {
   display: grid;
@@ -3716,7 +3716,7 @@ body:has(.app) > .site-footer {
     flex-direction: column;
   }
   .attempt-scroll .q-body {
-    margin: 12px 0 18px !important;
+    margin: 12px 0 18px;
     flex: none;
   }
   .attempt-actions {
@@ -4932,10 +4932,10 @@ body:has(.app) > .site-footer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
-.pub-fees-total {
+.pub-fees > .pub-fees-total {
   padding-top: 8px;
   border-top: 1px dashed #c9d3ee;
-  font-size: 1rem !important;
+  font-size: 1rem;
 }
 .pub-fees-total dd {
   color: var(--primary, #2152dc);

@@ -74,7 +74,6 @@ export function QuestionPanel({
           className="q-body"
           style={{
             whiteSpace: 'pre-wrap',
-            margin: '18px 0 20px',
             fontSize: '1rem',
             lineHeight: 1.6,
           }}
