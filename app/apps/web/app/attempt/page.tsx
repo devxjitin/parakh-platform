@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { QuestionImage, QuestionText } from '../../components/question-content';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AutosaveQueue,
@@ -13,33 +12,21 @@ import {
   type SendResult,
 } from '@parakh/shared';
 import { Alert, Button, useModalFocus, useQueryParam } from '../../components/ui';
-import { Icon } from '../../components/icons';
 import { ApiError, api } from '../../lib/api';
 import { useRequireAuth } from '../../lib/auth';
-
-type SaveState = 'saved' | 'saving' | 'error';
-
-const TIMING_POLL_MS = 10_000;
-const TIMING_RECHECK_MS = 2_000;
-
-const END_TEXT: Record<string, string> = {
-  SUBMITTED_BY_STUDENT: 'You submitted your exam.',
-  TIME_UP: 'Time ran out, so your exam was submitted automatically.',
-  STRIKES:
-    'Your exam was submitted automatically after too many warnings for leaving the exam screen.',
-};
-
-function clock(totalSeconds: number): string {
-  const s = Math.max(0, totalSeconds);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
-}
-
-const isAnswered = (a?: AttemptAnswerDto) => Boolean(a && (a.selected.length > 0 || a.text.trim()));
-const blank = (): AttemptAnswerDto => ({ selected: [], text: '', flagged: false });
+import { AttemptEnded } from '../../components/attempt/ended-screen';
+import { AttemptTopBar } from '../../components/attempt/top-bar';
+import { QuestionPanel } from '../../components/attempt/question-panel';
+import { QuestionNavigator } from '../../components/attempt/navigator';
+import { MobileBar } from '../../components/attempt/mobile-bar';
+import { SubmitDialog } from '../../components/attempt/submit-dialog';
+import {
+  TIMING_POLL_MS,
+  TIMING_RECHECK_MS,
+  blank,
+  isAnswered,
+  type SaveState,
+} from '../../components/attempt/helpers';
 
 export default function AttemptPage() {
   const { user, loading } = useRequireAuth();
@@ -493,97 +480,7 @@ export default function AttemptPage() {
       </main>
     );
 
-  if (!live) {
-    const steps = [
-      {
-        icon: 'check' as const,
-        title: 'Answers saved',
-        text: 'Everything you answered is stored. You can close this page.',
-      },
-      {
-        icon: 'mail' as const,
-        title: 'Result by email',
-        text: 'Your score, answer key and certificate are emailed as soon as marking is complete: right away for choice-only exams, after your trainer marks written answers otherwise.',
-      },
-      {
-        icon: 'book' as const,
-        title: 'Practice code',
-        text: 'A practice code for the same questions follows after the exam closes.',
-      },
-    ];
-    return (
-      <main className="gate gate-start gate-done">
-        <section className="wr-hero gate-hero">
-          <span className="done-mark" aria-hidden="true">
-            <Icon name="check" size={30} />
-          </span>
-          <h1 className="wr-title">Exam submitted</h1>
-          <p className="wr-by">{attempt.exam.title}</p>
-          <p className="gate-lead">
-            {END_TEXT[attempt.endReason ?? ''] ?? 'Your exam has been submitted.'}
-          </p>
-          <div className="gate-info">
-            <div className="gate-info-card">
-              <h3>Exam</h3>
-              <dl>
-                <div>
-                  <dt>Questions</dt>
-                  <dd>{attempt.exam.questionCount}</dd>
-                </div>
-                <div>
-                  <dt>Total marks</dt>
-                  <dd>{attempt.exam.totalMarks}</dd>
-                </div>
-                <div>
-                  <dt>Duration</dt>
-                  <dd>{attempt.exam.durationMinutes} min</dd>
-                </div>
-                {attempt.exam.code && (
-                  <div>
-                    <dt>Exam code</dt>
-                    <dd>{attempt.exam.code}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-            <div className="gate-info-card">
-              <h3>Candidate</h3>
-              <div className="gate-student">
-                <span className="gate-avatar" aria-hidden="true">
-                  {attempt.student.name.trim().charAt(0).toUpperCase() || 'S'}
-                </span>
-                <div>
-                  <b>{attempt.student.name}</b>
-                  <span>{attempt.student.email}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        <aside className="gate-side">
-          <div className="wr-panel">
-            <h3>What happens next</h3>
-            <ol className="next-steps">
-              {steps.map((st) => (
-                <li key={st.title}>
-                  <span className="next-ico" aria-hidden="true">
-                    <Icon name={st.icon} size={18} />
-                  </span>
-                  <div>
-                    <b>{st.title}</b>
-                    <p>{st.text}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <Link href="/" className="btn btn-primary btn-link done-home">
-              Go to home page
-            </Link>
-          </div>
-        </aside>
-      </main>
-    );
-  }
+  if (!live) return <AttemptEnded attempt={attempt} />;
 
   const q = attempt.questions[current];
   const isLast = current === attempt.questions.length - 1;
@@ -596,45 +493,12 @@ export default function AttemptPage() {
       <div className="sr-only" role="status" aria-live="assertive">
         {announce}
       </div>
-      <header className="attempt-topbar">
-        <div className="attempt-title">
-          <span className="attempt-title-dot" />
-          <span>{attempt.exam.title}</span>
-          <span className="attempt-crumb">
-            Question {q.number} of {attempt.questions.length}
-          </span>
-        </div>
-        <div className="attempt-stats">
-          <span className="save-pill" role="status" aria-live="polite">
-            <span
-              className={`save-dot ${saveState === 'saving' ? 'saving' : saveState === 'error' ? 'error' : ''}`}
-            />
-            {saveState === 'saving'
-              ? 'Saving…'
-              : saveState === 'error'
-                ? 'Offline, retrying…'
-                : 'All saved'}
-          </span>
-          {attempt.strikePolicy !== 'OFF' && (
-            <span className={`badge ${attempt.strikes > 0 ? 'badge-warn' : ''}`}>
-              <Icon name="shield" size={14} />
-              <span>
-                Warnings {attempt.strikes}
-                {attempt.strikePolicy === 'AUTO_SUBMIT' ? `/${attempt.maxStrikes}` : ''}
-              </span>
-            </span>
-          )}
-          <span
-            className={`timer-chip ${remaining !== null && remaining < 300 ? 'timer-warn' : ''}`}
-            role="timer"
-            aria-live="off"
-            aria-label={remaining === null ? 'Time left' : `Time left ${clock(remaining)}`}
-          >
-            <Icon name="clock" size={16} />
-            <span>{remaining === null ? '--:--' : clock(remaining)}</span>
-          </span>
-        </div>
-      </header>
+      <AttemptTopBar
+        attempt={attempt}
+        number={q.number}
+        saveState={saveState}
+        remaining={remaining}
+      />
 
       {warning && (
         <Alert>
@@ -658,304 +522,54 @@ export default function AttemptPage() {
       )}
 
       <div className={`attempt-grid${navMode === 'full' ? '' : ` nav-${navMode}`}`}>
-        <section className="card attempt-main">
-          <div className="toolbar attempt-q-head">
-            <div className="q-head-main">
-              <span className="q-head-num">{q.number}</span>
-              <div>
-                <strong>
-                  Question {q.number} of {attempt.questions.length}
-                </strong>
-                <span className="q-head-meta">
-                  {q.marks} {q.marks === 1 ? 'mark' : 'marks'}
-                  {q.type === 'MULTI' ? ' · Select all that apply' : ''}
-                </span>
-              </div>
-            </div>
-            <span className="spacer" />
-            {navMode === 'hidden' && (
-              <button
-                type="button"
-                className="nav-reopen"
-                onClick={() => setNavMode('full')}
-                aria-label="Show question navigator"
-              >
-                <Icon name="panel" size={16} />
-                <span>
-                  Questions {answeredCount}/{attempt.questions.length}
-                </span>
-              </button>
-            )}
-            <Button
-              variant={a.flagged ? 'primary' : 'secondary'}
-              small
-              onClick={() => change(q.id, { flagged: !a.flagged })}
-            >
-              {a.flagged ? 'Flagged for review' : 'Flag for review'}
-            </Button>
-          </div>
-
-          <div className="attempt-scroll">
-            <div
-              className="q-body"
-              style={{
-                whiteSpace: 'pre-wrap',
-                margin: '18px 0 20px',
-                fontSize: '1rem',
-                lineHeight: 1.6,
-              }}
-            >
-              <QuestionText text={q.body} markdown={q.markdown} />
-              {q.imageAlt && (
-                <QuestionImage
-                  path={`/attempts/${attempt.id}/questions/${q.id}/image`}
-                  alt={q.imageAlt}
-                />
-              )}
-            </div>
-
-            {q.type === 'SUBJECTIVE' ? (
-              <div className="field">
-                <textarea
-                  value={a.text}
-                  onChange={(e) => change(q.id, { text: e.target.value })}
-                  placeholder="Type your response here..."
-                  className="answer-area"
-                  maxLength={50_000}
-                />
-              </div>
-            ) : (
-              <div className="stack" style={{ marginTop: 12 }}>
-                {q.options.map((o, i) => {
-                  const checked = a.selected.includes(o.id);
-                  return (
-                    <label className={`attempt-opt-card${checked ? ' selected' : ''}`} key={o.id}>
-                      <input
-                        type={q.type === 'SINGLE' ? 'radio' : 'checkbox'}
-                        name={q.id}
-                        checked={checked}
-                        style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
-                        onChange={() =>
-                          change(q.id, {
-                            selected:
-                              q.type === 'SINGLE'
-                                ? [o.id]
-                                : checked
-                                  ? a.selected.filter((x) => x !== o.id)
-                                  : [...a.selected, o.id],
-                          })
-                        }
-                      />
-                      <span className="opt-badge">{String.fromCharCode(65 + i)}</span>
-                      <span style={{ flex: 1, paddingTop: 2 }}>
-                        <QuestionText text={o.text} markdown={q.markdown} />
-                      </span>
-                    </label>
-                  );
-                })}
-                {a.selected.length > 0 && q.type === 'SINGLE' && (
-                  <div>
-                    <Button
-                      variant="secondary"
-                      small
-                      onClick={() => change(q.id, { selected: [] })}
-                    >
-                      Clear answer
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="toolbar attempt-actions">
-            <Button
-              variant="secondary"
-              disabled={current === 0}
-              onClick={() => setCurrent((c) => c - 1)}
-            >
-              Previous
-            </Button>
-            <span className="spacer" />
-            {isLast ? (
-              <Button onClick={() => setConfirmSubmit(true)}>Submit exam</Button>
-            ) : (
-              <Button onClick={() => setCurrent((c) => c + 1)}>Next</Button>
-            )}
-          </div>
-        </section>
-
-        <aside
-          className={`card attempt-nav${navOpen ? ' open' : ''}`}
-          id="question-navigator"
-          aria-label="Question navigator"
-        >
-          <div className="nav-head">
-            <h2 className="nav-title">Question navigator</h2>
-            <div className="nav-tools">
-              <button
-                type="button"
-                className="nav-toggle"
-                onClick={() => setNavMode(navMode === 'slim' ? 'full' : 'slim')}
-                aria-label={
-                  navMode === 'slim'
-                    ? 'Expand question navigator'
-                    : 'Make question navigator smaller'
-                }
-                title={navMode === 'slim' ? 'Expand' : 'Make smaller'}
-              >
-                <Icon name="panel" size={18} />
-              </button>
-              <button
-                type="button"
-                className="nav-toggle nav-hide"
-                onClick={() => setNavMode('hidden')}
-                aria-label="Hide question navigator"
-                title="Hide"
-              >
-                <Icon name="chevron" size={18} />
-              </button>
-            </div>
-          </div>
-          <span className="nav-count" aria-hidden="true">
-            {answeredCount}/{attempt.questions.length}
-          </span>
-          <div className="nav-progress">
-            <div className="nav-progress-top">
-              <span>
-                {answeredCount} of {attempt.questions.length} answered
-              </span>
-              <b>{progressPercent}%</b>
-            </div>
-            <div className="q-progress">
-              <div className="q-progress-bar" style={{ width: `${progressPercent}%` }} />
-            </div>
-          </div>
-
-          <div
-            className="q-nav-grid"
-            ref={navRef}
-            onKeyDown={(e) => {
-              const keys: Record<string, number> = {
-                ArrowRight: 1,
-                ArrowDown: 5,
-                ArrowLeft: -1,
-                ArrowUp: -5,
-              };
-              const total = attempt.questions.length;
-              let next = -1;
-              if (e.key in keys) next = Math.min(total - 1, Math.max(0, current + keys[e.key]));
-              else if (e.key === 'Home') next = 0;
-              else if (e.key === 'End') next = total - 1;
-              if (next < 0) return;
-              e.preventDefault();
-              setCurrent(next);
-              navRef.current?.querySelectorAll<HTMLElement>('button')[next]?.focus();
-            }}
-          >
-            {attempt.questions.map((x, i) => {
-              const ans = answers[x.id];
-              const done = isAnswered(ans);
-              const isCurrent = i === current;
-              const isFlagged = Boolean(ans?.flagged);
-              return (
-                <button
-                  key={x.id}
-                  className={`q-nav-tile${done ? ' answered' : ''}${isCurrent ? ' current' : ''}${isFlagged ? ' flagged' : ''}`}
-                  aria-label={`Question ${x.number}${done ? ', answered' : ''}${isFlagged ? ', flagged' : ''}`}
-                  aria-current={isCurrent}
-                  tabIndex={isCurrent ? 0 : -1}
-                  onClick={() => {
-                    setCurrent(i);
-                    setNavOpen(false);
-                  }}
-                >
-                  {x.number}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="nav-legend">
-            <div>
-              <i className="lg-answered" />
-              <span>Answered</span>
-              <b>{answeredCount}</b>
-            </div>
-            <div>
-              <i className="lg-flagged" />
-              <span>Flagged for review</span>
-              <b>{attempt.questions.filter((x) => answers[x.id]?.flagged).length}</b>
-            </div>
-            <div>
-              <i className="lg-open" />
-              <span>Not answered</span>
-              <b>{attempt.questions.length - answeredCount}</b>
-            </div>
-          </div>
-        </aside>
+        <QuestionPanel
+          attempt={attempt}
+          q={q}
+          a={a}
+          isLast={isLast}
+          current={current}
+          answeredCount={answeredCount}
+          navMode={navMode}
+          setNavMode={setNavMode}
+          change={change}
+          setCurrent={setCurrent}
+          setConfirmSubmit={setConfirmSubmit}
+        />
+        <QuestionNavigator
+          attempt={attempt}
+          answers={answers}
+          current={current}
+          navMode={navMode}
+          navOpen={navOpen}
+          answeredCount={answeredCount}
+          progressPercent={progressPercent}
+          navRef={navRef}
+          setNavMode={setNavMode}
+          setCurrent={setCurrent}
+          setNavOpen={setNavOpen}
+        />
       </div>
 
-      <div className="attempt-mobilebar">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          aria-expanded={navOpen}
-          aria-controls="question-navigator"
-          onClick={() => setNavOpen((o) => !o)}
-        >
-          Questions {answeredCount}/{attempt.questions.length}
-        </button>
-        {isLast ? (
-          <button type="button" className="btn btn-primary" onClick={() => setConfirmSubmit(true)}>
-            Submit exam
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              setCurrent((c) => c + 1);
-              setNavOpen(false);
-            }}
-          >
-            Next
-          </button>
-        )}
-      </div>
+      <MobileBar
+        attempt={attempt}
+        answeredCount={answeredCount}
+        isLast={isLast}
+        navOpen={navOpen}
+        setNavOpen={setNavOpen}
+        setCurrent={setCurrent}
+        setConfirmSubmit={setConfirmSubmit}
+      />
 
       {confirmSubmit && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="submit-title"
-        >
-          <div className="modal-card" ref={modalRef}>
-            <h2 id="submit-title" style={{ marginTop: 0, fontSize: '1.25rem' }}>
-              Submit your exam?
-            </h2>
-            <p style={{ color: 'var(--muted)', fontSize: '0.94rem', lineHeight: 1.55 }}>
-              You have answered{' '}
-              <strong>
-                {answeredCount} of {attempt.questions.length}
-              </strong>{' '}
-              questions
-              {attempt.questions.some((x) => answers[x.id]?.flagged)
-                ? ' and some questions are flagged for review'
-                : ''}
-              . You cannot change your answers after submitting.
-            </p>
-            <div className="toolbar" style={{ marginTop: 20 }}>
-              <Button loading={submitting} onClick={() => void submit()}>
-                Yes, submit exam
-              </Button>
-              <Button variant="secondary" onClick={() => setConfirmSubmit(false)}>
-                Keep working
-              </Button>
-            </div>
-          </div>
-        </div>
+        <SubmitDialog
+          attempt={attempt}
+          answers={answers}
+          answeredCount={answeredCount}
+          submitting={submitting}
+          modalRef={modalRef}
+          submit={submit}
+          setConfirmSubmit={setConfirmSubmit}
+        />
       )}
     </main>
   );
