@@ -15,5 +15,16 @@
   "devDependencies": {
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./certificate-kind": {
+      "types": "./dist/certificate-kind.d.ts",
+      "default": "./dist/certificate-kind.js"
+    },
+    "./package.json": "./package.json"
   }
 }

@@ -21,22 +21,7 @@ export interface LivePricing {
 
 export const formatInr = (paise: number) => `₹${(paise / 100).toFixed(2)}`;
 
-export const CERT_KIND_TITLE = {
-  ACHIEVEMENT: 'Certificate of Achievement',
-  PARTICIPATION: 'Certificate of Participation',
-  TRAINER: 'Certificate of Appreciation',
-} as const;
-export type CertKind = keyof typeof CERT_KIND_TITLE;
-
-export interface VerifyCertificateDto {
-  state: 'VALID' | 'REVOKED' | 'NOT_FOUND';
-  serialNo: string;
-  holderName?: string;
-  examTitle?: string;
-  organisation?: string | null;
-  kind?: CertKind;
-  issuedOn?: string;
-}
+export { CERT_KIND_TITLE, type CertKind, type VerifyCertificateDto } from '@parakh/shared/certificate-kind';
 
 export type { CatalogExamDto } from '@parakh/shared/catalog';
 
