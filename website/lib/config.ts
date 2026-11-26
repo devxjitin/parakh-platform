@@ -9,12 +9,8 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000
 /** A link into the app, for example appUrl('/login/'). */
 export const appUrl = (path: string) => `${APP_URL}${path}`;
 
-/** Fallback prices, used until the live ones load. Keep in sync with PRICING in the shared package. */
-export const PRICING = {
-  EXAM_CREATION_PAISE: 99_00,
-  EXAM_JOIN_PAISE: 49_00,
-  EXAMINER_SHARE_PERCENT: 50,
-} as const;
+/** Fallback prices, used until the live ones load. They come from the app's shared package. */
+export { PRICING } from '@parakh/shared/constants';
 
 /** The live prices from the API (admin Settings); the fallback above shows until they arrive. */
 export interface LivePricing {
@@ -42,21 +38,6 @@ export interface VerifyCertificateDto {
   issuedOn?: string;
 }
 
-/** One exam on the public "Available exams" list (GET /catalog/exams). Metadata only. */
-export interface CatalogExamDto {
-  code: string;
-  title: string;
-  summary: string | null;
-  topics: string[];
-  /** The field the exam belongs to (empty = Other). */
-  category: string;
-  questionCount: number;
-  totalMarks: number;
-  durationMinutes: number;
-  passPercent: number;
-  feePaise: number;
-  hasWrittenQuestions: boolean;
-}
+export type { CatalogExamDto } from '@parakh/shared/catalog';
 
-/** Keep in sync with REVIEW_PROMISE_HOURS in the app's shared package. */
-export const REVIEW_PROMISE_HOURS = 24;
+export { REVIEW_PROMISE_HOURS } from '@parakh/shared/catalog';
