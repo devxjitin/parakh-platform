@@ -177,14 +177,6 @@ export default function MyPaymentsPage() {
                                 : 'paid'
                           }
                         />
-                        {p.refundRequest && p.status === 'CAPTURED' && (
-                          <div className="muted">
-                            Refund {p.refundRequest.status.toLowerCase()}
-                            {p.refundRequest.status === 'REJECTED' && p.refundRequest.decisionNote
-                              ? `: ${p.refundRequest.decisionNote}`
-                              : ''}
-                          </div>
-                        )}
                       </td>
                       <td>{day(p.capturedAt)}</td>
                       <td>

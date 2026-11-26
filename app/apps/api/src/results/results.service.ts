@@ -91,7 +91,6 @@ export class ResultsService {
     }
     const enrolled = await this.prisma.enrollment.count({ where: { examId: exam.id } });
 
-    const droppedIds = new Set(exam.questions.filter((q) => q.droppedAt).map((q) => q.id));
     const rows: AttemptRowDto[] = attempts.map((a) => ({
       attemptId: a.id,
       studentName: a.student.name,
@@ -102,9 +101,7 @@ export class ResultsService {
       submittedAt: a.submittedAt?.toISOString() ?? null,
       strikes: a.strikes,
       violations: a._count.events,
-      pendingGrading: a.answers.filter(
-        (x) => x.text?.trim() && x.marksAwarded === null && !droppedIds.has(x.questionId),
-      ).length,
+      pendingGrading: a.answers.filter((x) => x.text?.trim() && x.marksAwarded === null).length,
       flags: integrityFlags({
         hasDeviceId: Boolean(a.deviceId),
         sharedDeviceCount: a.deviceId ? (devices.get(a.deviceId) ?? 1) - 1 : 0,
@@ -237,11 +234,8 @@ export class ResultsService {
           selected: a?.selected ?? [],
           text: a?.text ?? null,
           // null means "still waiting for the trainer"; a blank written answer is simply 0.
-          marksAwarded: q.droppedAt
-            ? q.marks
-            : (a?.marksAwarded ?? (!written || blankWritten ? 0 : null)),
+          marksAwarded: a?.marksAwarded ?? (!written || blankWritten ? 0 : null),
           feedback: a?.feedback ?? null,
-          dropped: q.droppedAt !== null,
           override:
             a?.marksOverride != null
               ? { marks: a.marksOverride, reason: a.overrideReason ?? '' }

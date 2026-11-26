@@ -397,37 +397,3 @@ describe('refunds', () => {
     await get(trainer, '/admin/finance/payments').expect(403);
   });
 });
-
-describe('legacy seat packs', () => {
-  it('settles an already-issued seat order and can refund the unused pack', async () => {
-    const payment = await ctx.prisma.payment.create({
-      data: {
-        userId: trainerId,
-        examId: exam.examId,
-        purpose: 'SEAT_PACK',
-        amountPaise: 29_800,
-        quantity: 2,
-        currency: 'INR',
-        provider: 'fake',
-        providerOrderId: 'legacy-seat-order',
-      },
-    });
-    const paid = (
-      await post(trainer, '/payments/fake/complete', { orderId: payment.providerOrderId }).expect(
-        200,
-      )
-    ).body;
-    await post(trainer, '/payments/verify', paid).expect(200);
-    await post(trainer, '/payments/verify', paid).expect(200);
-    expect(await ctx.prisma.seat.count({ where: { pack: { paymentId: payment.id } } })).toBe(2);
-    expect((await ledger()).platformPaise).toBe(49_700);
-
-    await post(admin, `/admin/finance/payments/${payment.id}/refund`, { reason: 'Unused' }).expect(
-      200,
-    );
-    expect(await ctx.prisma.seatPack.count({ where: { paymentId: payment.id } })).toBe(0);
-    const result = await ledger();
-    expect(result.platformPaise).toBe(19_900);
-    expect(result.totalPaise).toBe(0);
-  });
-});

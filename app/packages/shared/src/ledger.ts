@@ -201,7 +201,7 @@ export type RefundInput = z.infer<typeof refundSchema>;
 export interface AdminPaymentRow {
   id: string;
   receiptNo: string;
-  purpose: 'EXAM_CREATION' | 'EXAM_JOIN' | 'SEAT_PACK';
+  purpose: 'EXAM_CREATION' | 'EXAM_JOIN';
   status: 'CREATED' | 'CAPTURED' | 'FAILED' | 'PENDING_REFUND' | 'REFUNDED';
   amountPaise: number;
   userName: string;

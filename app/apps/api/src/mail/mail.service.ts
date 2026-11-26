@@ -475,63 +475,6 @@ A practice code for the same questions will be emailed to you separately.
     });
   }
 
-  /** A student asked for their exam fee back; tell the admins so it does not sit unseen. */
-  sendRefundRequested(
-    to: string,
-    r: {
-      receiptNo: string;
-      amountPaise: number;
-      studentName: string;
-      examTitle: string;
-      reason: string;
-    },
-  ) {
-    const amount = '₹' + (r.amountPaise / 100).toFixed(2);
-    return this.deliver({
-      to,
-      subject: `Refund request: ${r.receiptNo}`,
-      text: `${r.studentName} asked for a refund of ${amount} for "${r.examTitle}" (${r.receiptNo}).\nReason: ${r.reason}\nOpen Admin > Payments > Refund requests to approve or reject it.\n`,
-      html: layout(
-        'Refund request',
-        `<p><b>${esc(r.studentName)}</b> asked for a refund of ${esc(amount)} for &ldquo;${esc(r.examTitle)}&rdquo; (${esc(r.receiptNo)}).</p><p style="font-size:14px">Reason: ${esc(r.reason)}</p><p>Open Admin &gt; Payments &gt; Refund requests to approve or reject it.</p>`,
-      ),
-    });
-  }
-
-  sendRefundRequestRejected(
-    to: string,
-    name: string,
-    r: { receiptNo: string; examTitle: string; note: string },
-  ) {
-    return this.deliver({
-      to,
-      subject: `Your refund request ${r.receiptNo} was not approved`,
-      text: `Hi ${name},\n\nWe could not approve your refund request for "${r.examTitle}" (${r.receiptNo}).\nReason: ${r.note}\n\nIf you think this is wrong, reply through the contact page.\n`,
-      html: layout(
-        'Refund request not approved',
-        `<p>Hi ${esc(name)}, we could not approve your refund request for &ldquo;${esc(r.examTitle)}&rdquo; (${esc(r.receiptNo)}).</p><p style="font-size:14px">Reason: ${esc(r.note)}</p><p>If you think this is wrong, reach us through the contact page.</p>`,
-      ),
-    });
-  }
-
-  sendSeatReceipt(
-    to: string,
-    name: string,
-    r: { examTitle: string; seats: number; receiptNo: string; amountPaise: number; paidAt: Date },
-  ) {
-    const rupees = (r.amountPaise / 100).toFixed(2);
-    const date = r.paidAt.toISOString().slice(0, 10);
-    return this.deliver({
-      to,
-      subject: `Receipt ${r.receiptNo}: ${r.seats} seats for "${r.examTitle}"`,
-      text: `Hi ${name},\n\nYou bought ${r.seats} seat(s) for "${r.examTitle}".\n\nReceipt ${r.receiptNo}, ${date}\nTotal: INR ${rupees} (final price, no GST added)\n`,
-      html: layout(
-        'Seats purchased',
-        `<p>Hi ${esc(name)}, you bought <strong>${r.seats}</strong> seat(s) for <strong>${esc(r.examTitle)}</strong>.</p><hr style="border:0;border-top:1px solid #ddd;margin:20px 0"><p style="font-size:14px">Receipt <strong>${esc(r.receiptNo)}</strong> · ${date}<br>Total: INR ${rupees} (final price, no GST added)</p>`,
-      ),
-    });
-  }
-
   sendJoinReceipt(
     to: string,
     name: string,

@@ -123,7 +123,7 @@ export async function renderAnswerSheet(input: {
 
   for (const q of result.questions) {
     room(60);
-    write(`Q${q.number}. ${q.body}${q.dropped ? '  (dropped: full marks to everyone)' : ''}`, {
+    write(`Q${q.number}. ${q.body}`, {
       font: bold,
       size: 11,
     });

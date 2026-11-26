@@ -475,14 +475,6 @@ export class PaymentsService {
         await this.ledger.post(tx, lines, { type: 'CREDIT', paymentId: payment.id });
         return result;
       }
-      if (payment.purpose === 'SEAT_PACK') {
-        // Settle legacy seat orders that were already issued before checkout was removed.
-        await this.ledger.post(tx, platformFeeLines(payment.amountPaise, payment.examId), {
-          type: 'CREDIT',
-          paymentId: payment.id,
-        });
-        return this.createLegacySeatPack(tx, payment);
-      }
       await this.ledger.post(tx, platformFeeLines(payment.amountPaise, payment.examId), {
         type: 'CREDIT',
         paymentId: payment.id,
@@ -540,19 +532,6 @@ export class PaymentsService {
       });
       if (payment.purpose === 'EXAM_JOIN') {
         await this.afterEnroll(payment.id, payment.userId, published, fresh);
-      } else if (payment.purpose === 'SEAT_PACK') {
-        const buyer = await this.prisma.user.findUnique({ where: { id: payment.userId } });
-        if (buyer && published.exam) {
-          await this.mail.sendSeatReceipt(buyer.email, buyer.name, {
-            examTitle: published.exam.title,
-            seats: payment.quantity,
-            receiptNo: formatReceiptNo(fresh.receiptNo),
-            amountPaise: fresh.amountPaise,
-            paidAt: fresh.capturedAt ?? new Date(),
-          });
-        } else if (!published.exam) {
-          await this.flagOrphan(payment.id);
-        }
       } else if (!published.exam) {
         // Paid, but the exam was deleted meanwhile: flag for a manual refund.
         await this.flagOrphan(payment.id);
@@ -779,32 +758,6 @@ export class PaymentsService {
     return { enrollmentId: enrollment.id };
   }
 
-  /** Records seats for a previously issued order so finance can reconcile or refund it. */
-  private async createLegacySeatPack(
-    tx: Prisma.TransactionClient,
-    payment: { id: string; userId: string; examId: string | null; quantity: number },
-  ) {
-    const exam = payment.examId
-      ? await tx.exam.findUnique({ where: { id: payment.examId } })
-      : null;
-    if (!exam) return { exam: null };
-    const pack = await tx.seatPack.create({
-      data: {
-        examId: exam.id,
-        sponsorId: payment.userId,
-        paymentId: payment.id,
-        seats: payment.quantity,
-      },
-    });
-    await tx.seat.createMany({
-      data: Array.from({ length: payment.quantity }, () => ({
-        packId: pack.id,
-        token: seatToken(),
-      })),
-    });
-    return { exam };
-  }
-
   // ------------------------------------------------------------------ refunds
 
   /**
@@ -973,10 +926,7 @@ export class PaymentsService {
     });
     await this.mail.sendRefundNotice(payment.user.email, payment.user.name, {
       amountPaise: payment.amountPaise,
-      what:
-        payment.purpose === 'SEAT_PACK'
-          ? `${payment.quantity} seat(s) in "${payment.exam?.title ?? 'an exam'}"`
-          : `your seat in "${payment.exam?.title ?? 'an exam'}"`,
+      what: `your seat in "${payment.exam?.title ?? 'an exam'}"`,
       reason,
     });
     return true;
@@ -1018,9 +968,7 @@ export class PaymentsService {
         status: (['CREATED', 'CAPTURED', 'FAILED', 'PENDING_REFUND', 'REFUNDED'] as const).find(
           (s) => s === filter.status,
         ),
-        purpose: (['EXAM_CREATION', 'EXAM_JOIN', 'SEAT_PACK'] as const).find(
-          (p) => p === filter.purpose,
-        ),
+        purpose: (['EXAM_CREATION', 'EXAM_JOIN'] as const).find((p) => p === filter.purpose),
         ...(filter.q
           ? {
               OR: [
