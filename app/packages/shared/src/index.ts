@@ -2,6 +2,7 @@ export * from './auth';
 export * from './constants';
 export * from './enums';
 export * from './exam';
+export * from './exam-kind';
 export * from './money';
 export * from './payment';
 export * from './attempt';

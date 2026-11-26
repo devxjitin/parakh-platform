@@ -15,6 +15,8 @@ import {
   formatReceiptNo,
   joinFeeLines,
   platformFeeLines,
+  pricingMode,
+  studentJoinFee,
   reverseLines,
   type AdminPaymentRow,
   type PublishOrderDto,
@@ -618,7 +620,7 @@ export class PaymentsService {
       throw new ConflictException('You have already joined this exam');
     if (state === 'ENDED') throw new ConflictException('This exam has ended');
 
-    if (exam.sponsoredEmails.length > 0) {
+    if (pricingMode(exam) === 'TRAINER_SPONSORED') {
       throw new ConflictException(
         'The trainer has paid for this exam. Join with the email the trainer invited, no payment needed.',
       );
@@ -681,8 +683,8 @@ export class PaymentsService {
   async enrollFree(user: AuthUser, rawCode: string) {
     const exam = await this.prisma.exam.findUnique({ where: { code: normalizeCode(rawCode) } });
     if (!exam || exam.status !== 'PUBLISHED') throw new NotFoundException('Exam code not found');
-    const sponsored = exam.sponsoredEmails.length > 0;
-    if (!sponsored && examJoinFee(exam, (await this.settings.get()).examJoinPaise) !== 0) {
+    const sponsored = pricingMode(exam) === 'TRAINER_SPONSORED';
+    if (studentJoinFee(exam, (await this.settings.get()).examJoinPaise) !== 0) {
       throw new ConflictException('This exam has a fee. Pay to join it.');
     }
     const state = computeJoinState({
