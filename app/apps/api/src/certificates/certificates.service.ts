@@ -25,6 +25,7 @@ import {
 } from '@parakh/shared';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../common/decorators';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -73,7 +74,10 @@ export class CertificatesService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.CERT_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => void this.runOnce(), 5000);
+    this.timer = setInterval(
+      () => void withLeaderLock(this.prisma, 'certificates', () => this.runOnce()),
+      5000,
+    );
     this.timer.unref();
   }
 

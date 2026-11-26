@@ -22,11 +22,17 @@
     "dev:api": "npm run dev -w @parakh/api",
     "dev:web": "npm run dev -w @parakh/web",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d --remove-orphans",
-    "infra:down": "docker compose -f infra/docker-compose.yml down"
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^15.5.29",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.14.0",
     "prettier": "^3.3.3",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.74.0"
   },
   "overrides": {
     "@nestjs/platform-express": {

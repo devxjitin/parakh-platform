@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { RESULT_RELEASE_DELAY_MIN } from '@parakh/shared';
 import { CertificatesService } from '../certificates/certificates.service';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,7 +35,10 @@ export class ResultsDeliveryService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.RESULTS_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => void this.sweep(), 30_000);
+    this.timer = setInterval(
+      () => void withLeaderLock(this.prisma, 'results-delivery', () => this.sweep()),
+      30_000,
+    );
     this.timer.unref();
   }
 

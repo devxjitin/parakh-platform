@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { randomInt } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PRACTICE } from '@parakh/shared';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -39,11 +40,13 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.NOTIFY_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => {
-      void this.sendReminders();
-      void this.sendPracticeCodes();
-      void this.sendResultsOverdue();
-    }, 60_000);
+    this.timer = setInterval(
+      () =>
+        void withLeaderLock(this.prisma, 'notifications', () =>
+          Promise.all([this.sendReminders(), this.sendPracticeCodes(), this.sendResultsOverdue()]),
+        ),
+      60_000,
+    );
     this.timer.unref();
   }
 

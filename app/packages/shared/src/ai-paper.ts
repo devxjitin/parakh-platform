@@ -366,7 +366,7 @@ function cleanText(s: string): string {
 }
 
 function jsonOnly(raw: string): string | null {
-  let t = raw.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  let t = raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
   t = t.replace(/```[a-zA-Z]*\s*/g, '');
   const a = t.indexOf('{');
   if (a < 0) return null;

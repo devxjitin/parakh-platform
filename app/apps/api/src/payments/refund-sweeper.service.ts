@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
@@ -29,7 +30,10 @@ export class RefundSweeperService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.SWEEP_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => void this.sweep(), 60_000);
+    this.timer = setInterval(
+      () => void withLeaderLock(this.prisma, 'refund-sweeper', () => this.sweep()),
+      60_000,
+    );
     this.timer.unref();
   }
 

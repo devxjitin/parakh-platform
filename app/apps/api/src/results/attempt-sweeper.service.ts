@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { GRACE_MS } from '../common/timing';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 import { GradingService } from './grading.service';
@@ -23,7 +24,10 @@ export class AttemptSweeperService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.SWEEP_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => void this.sweep(), 60_000);
+    this.timer = setInterval(
+      () => void withLeaderLock(this.prisma, 'attempt-sweeper', () => this.sweep()),
+      60_000,
+    );
     this.timer.unref();
   }
 
