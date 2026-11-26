@@ -1,10 +1,16 @@
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { INTEGRITY, type EnrollmentDto, type JoinInfoDto } from '@parakh/shared';
+import {
+  INTEGRITY,
+  pricingMode,
+  studentJoinFee,
+  type EnrollmentDto,
+  type JoinInfoDto,
+} from '@parakh/shared';
 import { AuditService } from '../audit/audit.service';
 import type { AuthUser } from '../common/decorators';
 import { SettingsService } from '../settings/settings.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { canRetake, computeJoinState, examJoinFee, normalizeCode } from './join-state';
+import { canRetake, computeJoinState, normalizeCode } from './join-state';
 
 @Injectable()
 export class EnrollmentsService {
@@ -54,12 +60,9 @@ export class EnrollmentsService {
       endsAt: exam.endsAt?.toISOString() ?? null,
       questionCount: exam.questions.length,
       totalMarks: Math.round(total * 100) / 100,
-      feePaise:
-        exam.sponsoredEmails.length > 0
-          ? 0
-          : examJoinFee(exam, (await this.settings.get()).examJoinPaise),
+      feePaise: studentJoinFee(exam, (await this.settings.get()).examJoinPaise),
       nandivexHosted: exam.nandivexHosted,
-      sponsored: exam.sponsoredEmails.length > 0,
+      sponsored: pricingMode(exam) === 'TRAINER_SPONSORED',
       alwaysOpen: exam.alwaysOpen,
       hasWrittenQuestions: exam.questions.some((q) => q.type === 'SUBJECTIVE'),
       // Who is asking is not known yet, so "already joined" is answered by myForCode.
