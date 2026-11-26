@@ -1,4 +1,4 @@
-// Parakh database schema. Sprint 1 covers identity; exams, payments etc. arrive in later sprints.
+// Parakh database schema: users and sessions, exams and questions, attempts and results, payments and the ledger.
 
 generator client {
   provider      = "prisma-client-js"

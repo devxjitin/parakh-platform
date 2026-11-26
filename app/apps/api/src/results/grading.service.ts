@@ -28,7 +28,7 @@ export class GradingService {
     const awarded: number[] = [];
     let pending = 0;
 
-    // With a question pool, only the questions this student was given count.
+    // Only the questions this student was given count.
     const given = new Set(attempt.questionOrder as string[]);
     const questions = attempt.exam.questions.filter((q) => given.has(q.id));
 
