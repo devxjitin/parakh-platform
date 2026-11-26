@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { formatReceiptNo } from '@parakh/shared';
 import { AuditService } from '../audit/audit.service';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -71,7 +72,10 @@ export class ReconciliationService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.SWEEP_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => void this.runDaily(), 30 * 60_000);
+    this.timer = setInterval(
+      () => void withLeaderLock(this.prisma, 'reconciliation', () => this.runDaily()),
+      30 * 60_000,
+    );
     this.timer.unref();
   }
 

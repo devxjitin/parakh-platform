@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { withLeaderLock } from '../common/leader-lock';
 import { ENV, Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -17,7 +18,10 @@ export class AuthCleanupService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.AUTH_JOBS_POLL !== 'on') return;
-    this.timer = setInterval(() => void this.runOnce(), 3_600_000);
+    this.timer = setInterval(
+      () => void withLeaderLock(this.prisma, 'auth-cleanup', () => this.runOnce()),
+      3_600_000,
+    );
     this.timer.unref();
   }
 

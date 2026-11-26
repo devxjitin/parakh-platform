@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { QuestionImage, QuestionText } from '../../components/question-content';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {

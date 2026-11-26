@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import type { AuthResponse, PublicUser } from '@parakh/shared';
 import { changePasswordSchema, updateProfileSchema } from '@parakh/shared';

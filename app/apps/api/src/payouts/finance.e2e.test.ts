@@ -376,7 +376,7 @@ describe('refunds', () => {
     await payAll();
 
     await refund(first.payment.id).expect(200);
-    let b = (await earnings()).balances;
+    const b = (await earnings()).balances;
     expect(b.owedBackPaise).toBe(7_450);
     expect(b.payablePaise).toBe(0);
     expect((await ledger()).totalPaise).toBe(0);
