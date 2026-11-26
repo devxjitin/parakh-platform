@@ -319,10 +319,6 @@ export interface ExamQuestionDto extends QuestionPresentation {
   partialCredit: boolean;
   explanation: string | null;
   rubric: string | null;
-  /** Set when the trainer dropped the question: everyone gets its full marks. */
-  dropped: boolean;
-  /** Number of corrections made after publishing. */
-  revision: number;
 }
 
 export interface ExamSummaryDto {

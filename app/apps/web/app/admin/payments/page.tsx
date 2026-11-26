@@ -11,7 +11,6 @@ import {
   describeError,
 } from '../../../components/ui';
 import { api } from '../../../lib/api';
-import { RefundRequestsPanel } from '../../../components/refund-requests-panel';
 import { useRequireAuth } from '../../../lib/auth';
 import { promptDialog } from '../../../components/dialogs';
 import { SearchField } from '../../../components/search-field';
@@ -20,7 +19,6 @@ const rupees = (paise: number) => `₹${(paise / 100).toFixed(2)}`;
 const PURPOSE: Record<AdminPaymentRow['purpose'], string> = {
   EXAM_CREATION: 'Publishing fee',
   EXAM_JOIN: 'Student join fee',
-  SEAT_PACK: 'Sponsored seats',
 };
 const STATUS_KIND: Record<AdminPaymentRow['status'], string> = {
   CREATED: 'PAYMENT_PENDING',
@@ -102,7 +100,6 @@ export default function AdminPaymentsPage() {
   return (
     <Shell wide>
       <PageHeader title="Payments" subtitle="Find a payment and refund it." />
-      <RefundRequestsPanel onChanged={() => void load()} />
       {error && <Alert>{error}</Alert>}
       {note && <Alert kind="success">{note}</Alert>}
       {rows && rows.some((p) => p.needsRefund && p.status === 'CAPTURED') && (
@@ -120,7 +117,6 @@ export default function AdminPaymentsPage() {
           <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
             <option value="">All types</option>
             <option value="EXAM_JOIN">Student join fee</option>
-            <option value="SEAT_PACK">Sponsored seats</option>
             <option value="EXAM_CREATION">Publishing fee</option>
           </select>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -164,7 +160,6 @@ export default function AdminPaymentsPage() {
                     </td>
                     <td>
                       {PURPOSE[p.purpose]}
-                      {p.purpose === 'SEAT_PACK' && ` (${p.quantity})`}
                       <div className="muted">{p.examTitle ?? ''}</div>
                     </td>
                     <td className="num">{rupees(p.amountPaise)}</td>

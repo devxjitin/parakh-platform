@@ -797,8 +797,6 @@ export class ExamsService {
       partialCredit: q.partialCredit,
       explanation: q.explanation,
       rubric: q.rubric,
-      dropped: q.droppedAt !== null,
-      revision: q.revision,
     };
   }
 

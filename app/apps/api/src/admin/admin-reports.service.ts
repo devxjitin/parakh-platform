@@ -325,7 +325,7 @@ export class AdminReportsService {
       by: ['examId', 'status'],
       where: {
         examId: { in: exams.map((e) => e.id) },
-        purpose: { in: ['EXAM_JOIN', 'SEAT_PACK'] },
+        purpose: 'EXAM_JOIN',
         status: { in: ['CAPTURED', 'PENDING_REFUND', 'REFUNDED'] },
       },
       _sum: { amountPaise: true },

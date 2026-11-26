@@ -35,67 +35,57 @@ export class AccountService {
     });
     if (!me) throw new NotFoundException('Account not found');
 
-    const [
-      enrollments,
-      attempts,
-      payments,
-      refundRequests,
-      payouts,
-      certificates,
-      practice,
-      exams,
-    ] = await Promise.all([
-      this.prisma.enrollment.findMany({
-        where: { studentId: user.id },
-        include: { exam: { select: { title: true, code: true } } },
-        orderBy: { createdAt: 'asc' },
-      }),
-      this.prisma.attempt.findMany({
-        where: { studentId: user.id },
-        include: {
-          exam: { select: { title: true } },
-          answers: {
-            select: {
-              questionId: true,
-              selected: true,
-              text: true,
-              language: true,
-              flagged: true,
-              marksAwarded: true,
-              marksOverride: true,
-              feedback: true,
-              updatedAt: true,
+    const [enrollments, attempts, payments, payouts, certificates, practice, exams] =
+      await Promise.all([
+        this.prisma.enrollment.findMany({
+          where: { studentId: user.id },
+          include: { exam: { select: { title: true, code: true } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        this.prisma.attempt.findMany({
+          where: { studentId: user.id },
+          include: {
+            exam: { select: { title: true } },
+            answers: {
+              select: {
+                questionId: true,
+                selected: true,
+                text: true,
+                flagged: true,
+                marksAwarded: true,
+                marksOverride: true,
+                feedback: true,
+                updatedAt: true,
+              },
+            },
+            events: {
+              select: { type: true, strike: true, ip: true, deviceId: true, createdAt: true },
+              orderBy: { createdAt: 'asc' },
             },
           },
-          events: {
-            select: { type: true, strike: true, ip: true, deviceId: true, createdAt: true },
-            orderBy: { createdAt: 'asc' },
-          },
-        },
-        orderBy: { startedAt: 'asc' },
-      }),
-      this.prisma.payment.findMany({
-        where: { userId: user.id },
-        include: { exam: { select: { title: true } } },
-        orderBy: { createdAt: 'asc' },
-      }),
-      this.prisma.refundRequest.findMany({ where: { userId: user.id } }),
-      this.prisma.payout.findMany({
-        where: { examinerId: user.id },
-        orderBy: { requestedAt: 'asc' },
-      }),
-      this.prisma.certificate.findMany({ where: { studentId: user.id } }),
-      this.prisma.practiceRound.findMany({
-        where: { studentId: user.id },
-        include: { exam: { select: { title: true } } },
-        orderBy: { createdAt: 'asc' },
-      }),
-      this.prisma.exam.findMany({
-        where: { examinerId: user.id },
-        include: { questions: { orderBy: { position: 'asc' } } },
-        orderBy: { createdAt: 'asc' },
-      }),
-    ]);
+          orderBy: { startedAt: 'asc' },
+        }),
+        this.prisma.payment.findMany({
+          where: { userId: user.id },
+          include: { exam: { select: { title: true } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        this.prisma.payout.findMany({
+          where: { examinerId: user.id },
+          orderBy: { requestedAt: 'asc' },
+        }),
+        this.prisma.certificate.findMany({ where: { studentId: user.id } }),
+        this.prisma.practiceRound.findMany({
+          where: { studentId: user.id },
+          include: { exam: { select: { title: true } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        this.prisma.exam.findMany({
+          where: { examinerId: user.id },
+          include: { questions: { orderBy: { position: 'asc' } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+      ]);
 
     // Answers say which question they belong to; add the question text so the file is readable.
     const questionIds = [...new Set(attempts.flatMap((a) => a.answers.map((x) => x.questionId)))];
@@ -154,7 +144,6 @@ export class AccountService {
           question: questionText.get(x.questionId) ?? null,
           selectedOptions: x.selected,
           text: x.text,
-          language: x.language,
           flagged: x.flagged,
           marksAwarded: x.marksOverride ?? x.marksAwarded,
           feedback: x.feedback,
@@ -171,12 +160,6 @@ export class AccountService {
         paidAt: p.capturedAt,
         refundedAt: p.refundedAt,
         refundReason: p.refundReason,
-      })),
-      refundRequests: refundRequests.map((r) => ({
-        reason: r.reason,
-        status: r.status,
-        decisionNote: r.decisionNote,
-        requestedAt: r.createdAt,
       })),
       payouts: payouts.map((p) => ({
         amountPaise: p.amountPaise,

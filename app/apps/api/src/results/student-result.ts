@@ -33,10 +33,9 @@ export function toStudentResult(
           selected: a?.selected ?? [],
           text: a?.text ?? null,
           marks: q.marks,
-          marksAwarded: q.droppedAt ? q.marks : (a?.marksAwarded ?? 0),
+          marksAwarded: a?.marksAwarded ?? 0,
           explanation: q.explanation,
           feedback: a?.feedback ?? null,
-          dropped: q.droppedAt !== null,
         },
       ];
     }),

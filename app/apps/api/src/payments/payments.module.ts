@@ -4,7 +4,7 @@ import { CertificatesModule } from '../certificates/certificates.module';
 import { LedgerModule } from '../ledger/ledger.module';
 import { ExamLifecycleController } from './exam-lifecycle.controller';
 import { ExamLifecycleService } from './exam-lifecycle.service';
-import { AdminRefundRequestsController, MyPaymentsController } from './my-payments.controller';
+import { MyPaymentsController } from './my-payments.controller';
 import { MyPaymentsService } from './my-payments.service';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
@@ -19,7 +19,6 @@ import { PAYMENT_PROVIDER, createPaymentProvider } from './provider';
     PaymentsController,
     ExamLifecycleController,
     MyPaymentsController,
-    AdminRefundRequestsController,
     ReconciliationController,
   ],
   providers: [

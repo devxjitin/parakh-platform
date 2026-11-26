@@ -24,9 +24,6 @@ export function MarkOverride({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (q.dropped) {
-    return <p className="muted">This question was dropped, so everyone has full marks.</p>;
-  }
   if (locked) {
     return q.override ? (
       <p className="muted">

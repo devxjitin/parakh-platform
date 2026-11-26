@@ -34,11 +34,6 @@ export class GradingService {
 
     for (const q of questions) {
       const a = byQuestion.get(q.id);
-      if (q.droppedAt) {
-        // Dropped by the trainer: full marks for everyone, nothing to grade.
-        awarded.push(q.marks);
-        continue;
-      }
       if (q.type === 'SUBJECTIVE') {
         if (!a?.text?.trim()) {
           awarded.push(0); // left blank: nothing to read, nothing to award

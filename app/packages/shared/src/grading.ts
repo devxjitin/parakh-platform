@@ -130,8 +130,6 @@ export interface GradingQuestionDto extends QuestionPresentation {
   text: string | null;
   marksAwarded: number | null;
   feedback: string | null;
-  /** The question was dropped: everyone has its full marks. */
-  dropped: boolean;
   /** The trainer set this mark by hand, with the reason. */
   override: { marks: number; reason: string } | null;
 }
@@ -171,7 +169,5 @@ export interface StudentResultDto extends ResultSummaryDto {
     marksAwarded: number;
     explanation: string | null;
     feedback: string | null;
-    /** The trainer dropped this question, so everyone got full marks. */
-    dropped: boolean;
   })[];
 }

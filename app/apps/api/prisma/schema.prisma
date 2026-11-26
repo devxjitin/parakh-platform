@@ -50,7 +50,6 @@ enum PaymentStatus {
 enum PaymentPurpose {
   EXAM_CREATION
   EXAM_JOIN
-  SEAT_PACK
 }
 
 enum PayoutMethod {
@@ -198,19 +197,11 @@ model Question {
   options        String[]
   correctOptions Int[]
   marks          Float        @default(4)
-  /// Unused: negative marking was removed. The column stays so no migration is needed.
-  negativeMarks  Float        @default(0)
   // Multiple-answer only: share the marks when only some correct options are picked.
   partialCredit  Boolean      @default(false)
-  // Archived settings for questions converted to written answers.
-  coding         Json?
   explanation    String?
   // Subjective questions only: marking guidance for the grader.
   rubric         String?
-  // Bumped on every post-publish correction (text, answer key, dropped).
-  revision       Int          @default(0)
-  // Set when the trainer drops the question: everyone gets its full marks.
-  droppedAt      DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -332,34 +323,9 @@ model Payment {
   exam          Exam?          @relation(fields: [examId], references: [id], onDelete: SetNull)
   enrollment    Enrollment?
   seatPack      SeatPack?
-  refundRequest RefundRequest?
 
   @@index([userId, createdAt])
   @@index([examId, purpose, status])
-}
-
-enum RefundRequestStatus {
-  REQUESTED
-  APPROVED
-  REJECTED
-}
-
-/// A student asking for their exam fee back before they start. One request per payment.
-model RefundRequest {
-  id           String              @id @default(uuid()) @db.Uuid
-  paymentId    String              @unique @db.Uuid
-  userId       String              @db.Uuid
-  reason       String
-  status       RefundRequestStatus @default(REQUESTED)
-  decidedById  String?             @db.Uuid
-  decidedAt    DateTime?
-  decisionNote String?
-  createdAt    DateTime            @default(now())
-
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-
-  @@index([status, createdAt])
-  @@index([userId])
 }
 
 // One row per gateway webhook event; the unique id makes redelivery harmless.
@@ -458,15 +424,11 @@ model Answer {
   marksAwarded   Float?
   feedback       String?
   gradedAt       DateTime?
-  // Archived language and sample-run count for former coding answers.
-  language       String?
-  runs           Int       @default(0)
   // Highest client sequence number applied; older autosaves that arrive late are ignored.
   clientSeq      BigInt    @default(0)
   // Trainer's mark for a choice answer, with the reason. Wins over the automatic mark.
   marksOverride  Float?
   overrideReason String?
-  lastRunAt      DateTime?
   updatedAt      DateTime  @updatedAt
 
   attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)

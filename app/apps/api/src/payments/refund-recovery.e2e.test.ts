@@ -117,7 +117,7 @@ describe('refund that cannot finish at once (PENDING_REFUND)', () => {
     vi.spyOn(provider, 'refund').mockRejectedValueOnce(new GatewayRefundError('timeout', false));
     await refund(payment.id).expect(503);
     const mine = (await ctx.http().get('/me/payments').set(auth(sam)).expect(200)).body[0];
-    expect(mine).toMatchObject({ status: 'PENDING_REFUND', canRequestRefund: false });
+    expect(mine).toMatchObject({ status: 'PENDING_REFUND' });
   });
 });
 
