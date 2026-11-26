@@ -28,13 +28,8 @@ export type CertificateTemplateInput = z.input<typeof certificateTemplateSchema>
 
 export const DEFAULT_CERT_TEMPLATE: CertificateTemplate = certificateTemplateSchema.parse({});
 
-export const CERT_KIND_TITLE = {
-  ACHIEVEMENT: 'Certificate of Achievement',
-  PARTICIPATION: 'Certificate of Participation',
-  TRAINER: 'Certificate of Appreciation',
-} as const;
-/** ACHIEVEMENT and PARTICIPATION go to students; TRAINER goes to the trainer who ran the exam. */
-export type CertKind = keyof typeof CERT_KIND_TITLE;
+export { CERT_KIND_TITLE, type CertKind } from './certificate-kind';
+import type { CertKind } from './certificate-kind';
 export type StudentCertKind = 'ACHIEVEMENT' | 'PARTICIPATION';
 
 /** Achievement at or above the pass mark; below it, participation (if the trainer allows it). */
@@ -104,18 +99,7 @@ export interface TrainerCertificatesDto {
   template: CertificateTemplate;
 }
 
-export type VerifyState = 'VALID' | 'REVOKED' | 'NOT_FOUND';
-
-/** The public answer to "is this certificate real?". Never includes scores or emails. */
-export interface VerifyCertificateDto {
-  state: VerifyState;
-  serialNo: string;
-  holderName?: string;
-  examTitle?: string;
-  organisation?: string | null;
-  kind?: CertKind;
-  issuedOn?: string;
-}
+export type { VerifyState, VerifyCertificateDto } from './certificate-kind';
 
 export const approveCertificatesSchema = z
   .object({

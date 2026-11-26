@@ -14,7 +14,13 @@
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
-    "paths": { "@parakh/shared/*": ["../app/packages/shared/src/*"] },
+    "paths": {
+      "@parakh/shared/*": ["../app/packages/shared/src/*"],
+      "@parakh/ui/*": ["../app/packages/ui/src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-dom": ["./node_modules/@types/react-dom"]
+    },
     "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
