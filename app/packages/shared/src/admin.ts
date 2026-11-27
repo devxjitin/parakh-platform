@@ -16,6 +16,12 @@ export const platformSettingsSchema = z.object({
   examinerSharePercent: z.number().int().min(0).max(100),
   /** Trainers can ask for a payout once this much is payable. */
   minPayoutPaise: paise(1_000_000_00),
+  /**
+   * Where payers pay: "checkout" opens Razorpay's payment window inside Parakh; "link" sends them
+   * to a Razorpay-hosted page and back. An admin can switch at any time; it applies to payments
+   * opened from then on.
+   */
+  paymentFlow: z.enum(['checkout', 'link']).default('checkout'),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 

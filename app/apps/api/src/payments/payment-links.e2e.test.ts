@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { TestContext, createTestApp, signUp } from '../../test/helpers';
+import { TestContext, createAdmin, createTestApp, signUp } from '../../test/helpers';
 import { ENV, type Env } from '../config/env';
 import { FakePaymentProvider } from './provider';
 
@@ -156,5 +156,56 @@ describe('payment links', () => {
     const res = await linkOrder(id);
     expect(res.orderId).toMatch(/^fake_order_/);
     expect(res.paymentUrl).toBeUndefined();
+  });
+});
+
+describe('admin switch between in-app Checkout and the hosted page', () => {
+  async function saveFlow(admin: { accessToken: string }, paymentFlow: 'checkout' | 'link') {
+    const current = (await ctx.http().get('/admin/settings').set(auth(admin)).expect(200)).body;
+    await ctx
+      .http()
+      .put('/admin/settings')
+      .set(auth(admin))
+      .send({ ...current, paymentFlow })
+      .expect(200);
+  }
+
+  it('starts from the server setting, then follows what an admin saves, any time', async () => {
+    const admin = await createAdmin(ctx);
+    // Nothing saved yet: the server's PAYMENT_FLOW (link, set in beforeEach) applies.
+    expect((await ctx.http().get('/admin/settings').set(auth(admin))).body.paymentFlow).toBe(
+      'link',
+    );
+    const id = await readyExam();
+    expect((await linkOrder(id)).paymentUrl).toMatch(/^https:\/\//);
+
+    // An admin picks the in-app window: it wins over the server setting, and the open link is replaced.
+    await saveFlow(admin, 'checkout');
+    const inApp = await linkOrder(id);
+    expect(inApp.orderId).toMatch(/^fake_order_/);
+    expect(inApp.paymentUrl).toBeUndefined();
+
+    // And back to the hosted page, without touching the server setting.
+    await saveFlow(admin, 'link');
+    const hosted = await linkOrder(id);
+    expect(hosted.orderId).toMatch(/^plink_/);
+    expect(hosted.paymentUrl).toMatch(/^https:\/\//);
+  });
+
+  it('refuses an unknown flow and keeps an old client without the field working', async () => {
+    const admin = await createAdmin(ctx);
+    const current = (await ctx.http().get('/admin/settings').set(auth(admin))).body;
+    await ctx
+      .http()
+      .put('/admin/settings')
+      .set(auth(admin))
+      .send({ ...current, paymentFlow: 'paypal' })
+      .expect(400);
+    // A save that leaves the field out is accepted and stores the in-app default.
+    const { paymentFlow: _omitted, ...withoutFlow } = current;
+    await ctx.http().put('/admin/settings').set(auth(admin)).send(withoutFlow).expect(200);
+    expect((await ctx.http().get('/admin/settings').set(auth(admin))).body.paymentFlow).toBe(
+      'checkout',
+    );
   });
 });
