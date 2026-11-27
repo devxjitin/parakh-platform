@@ -348,6 +348,8 @@ describe('platform settings', () => {
       examJoinPaise: 4_900,
       examinerSharePercent: 50,
       minPayoutPaise: 50_000,
+      // The test server's PAYMENT_FLOW (checkout) applies until an admin saves a choice.
+      paymentFlow: 'checkout',
     });
   });
 

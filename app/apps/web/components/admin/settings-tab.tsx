@@ -18,6 +18,7 @@ export function Settings() {
     examJoinPaise: String(s.examJoinPaise / 100),
     examinerSharePercent: String(s.examinerSharePercent),
     minPayoutPaise: String(s.minPayoutPaise / 100),
+    paymentFlow: s.paymentFlow,
   });
   useEffect(() => {
     api<PlatformSettings>('/admin/settings')
@@ -49,14 +50,16 @@ export function Settings() {
       examJoinPaise: rupeesToPaise(form.examJoinPaise),
       examinerSharePercent: Number(form.examinerSharePercent),
       minPayoutPaise: rupeesToPaise(form.minPayoutPaise),
+      paymentFlow: form.paymentFlow === 'link' ? 'link' : 'checkout',
     };
-    if (Object.values(body).some((v) => !Number.isFinite(v))) {
+    const { paymentFlow, ...numbers } = body;
+    if (Object.values(numbers).some((v) => !Number.isFinite(v))) {
       setError('Enter numbers only.');
       return;
     }
     if (
       !(await confirmDialog(
-        `Publishing fee ${rupees(body.examCreationPaise)}, join fee ${rupees(body.examJoinPaise)}.\n\nThis applies to payments made from now on. Save?`,
+        `Publishing fee ${rupees(body.examCreationPaise)}, join fee ${rupees(body.examJoinPaise)}.\nPayment page: ${paymentFlow === 'link' ? 'Razorpay hosted page (external link)' : 'inside Parakh (Razorpay Checkout)'}.\n\nThis applies to payments made from now on. Save?`,
         { title: 'Change platform fees', confirmLabel: 'Save' },
       ))
     ) {
@@ -86,6 +89,41 @@ export function Settings() {
       {note && <Alert kind="success">{note}</Alert>}
       {field('examCreationPaise', 'Publishing fee', 'Trainers pay this to publish an exam.', '₹')}
       {field('examJoinPaise', 'Join fee', 'Students pay this to join an exam.', '₹')}
+      <fieldset className="field" style={{ border: 0, padding: 0, margin: '16px 0' }}>
+        <legend style={{ fontWeight: 600, marginBottom: 6 }}>Where people pay</legend>
+        <div className="pay-options" role="radiogroup" aria-label="Where people pay">
+          <label className={`pay-option${form.paymentFlow !== 'link' ? ' on' : ''}`}>
+            <input
+              type="radio"
+              name="paymentFlow"
+              checked={form.paymentFlow !== 'link'}
+              onChange={() => setForm({ ...form, paymentFlow: 'checkout' })}
+            />
+            <span className="pay-option-text">
+              <b>Inside Parakh</b>
+              <small>
+                Razorpay&apos;s payment window opens on top of the page. Nobody leaves the site.
+              </small>
+            </span>
+          </label>
+          <label className={`pay-option${form.paymentFlow === 'link' ? ' on' : ''}`}>
+            <input
+              type="radio"
+              name="paymentFlow"
+              checked={form.paymentFlow === 'link'}
+              onChange={() => setForm({ ...form, paymentFlow: 'link' })}
+            />
+            <span className="pay-option-text">
+              <b>Razorpay page (external link)</b>
+              <small>Payers go to a page hosted by Razorpay and come back after paying.</small>
+            </span>
+          </label>
+        </div>
+        <small className="muted">
+          You can switch any time. A payment that is already open keeps working; new payments use
+          the choice you save.
+        </small>
+      </fieldset>
       <Button loading={busy} onClick={save}>
         Save settings
       </Button>

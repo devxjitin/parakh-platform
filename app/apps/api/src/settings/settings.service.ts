@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PRICING, platformSettingsSchema, type PlatformSettings } from '@parakh/shared';
+import { ENV, Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 
 const KEY = 'platform';
@@ -10,6 +11,7 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
   examJoinPaise: PRICING.EXAM_JOIN_PAISE,
   examinerSharePercent: PRICING.EXAMINER_SHARE_PERCENT,
   minPayoutPaise: PRICING.MIN_PAYOUT_PAISE,
+  paymentFlow: 'checkout',
 };
 
 /** Prices and the trainer's share. Edited by NandiVex admins; the code defaults apply until then. */
@@ -17,18 +19,23 @@ export const DEFAULT_SETTINGS: PlatformSettings = {
 export class SettingsService {
   private cached?: { at: number; value: PlatformSettings };
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(ENV) private readonly env: Env,
+  ) {}
 
   async get(): Promise<PlatformSettings> {
     const useCache = process.env.NODE_ENV !== 'test';
     if (useCache && this.cached && Date.now() - this.cached.at < TTL_MS) return this.cached.value;
     const row = await this.prisma.platformSetting.findUnique({ where: { key: KEY } });
     // A stored value that no longer fits the rules falls back to the defaults, never to nothing.
+    // The payment flow starts as the PAYMENT_FLOW setting of the server, until an admin saves one.
+    const defaults: PlatformSettings = { ...DEFAULT_SETTINGS, paymentFlow: this.env.PAYMENT_FLOW };
     const parsed = platformSettingsSchema.safeParse({
-      ...DEFAULT_SETTINGS,
+      ...defaults,
       ...(row?.value as object),
     });
-    const value = parsed.success ? parsed.data : DEFAULT_SETTINGS;
+    const value = parsed.success ? parsed.data : defaults;
     this.cached = { at: Date.now(), value };
     return value;
   }

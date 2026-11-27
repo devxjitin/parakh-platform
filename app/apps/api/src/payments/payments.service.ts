@@ -246,14 +246,14 @@ export class PaymentsService {
 
   /**
    * Reuses the unpaid gateway payment when it still fits the current payment flow, or opens a new
-   * one: a Checkout order, or a hosted Payment Link page when PAYMENT_FLOW=link.
+   * one: a Checkout order, or a hosted Payment Link page when the admin setting paymentFlow is "link".
    */
   private async openGatewayPayment(
     user: AuthUser,
     existingId: string | null,
     input: { amountPaise: number; receipt: string; description: string },
   ): Promise<{ orderId: string; paymentUrl?: string; isNew: boolean }> {
-    const useLink = this.env.PAYMENT_FLOW === 'link';
+    const useLink = (await this.settings.get()).paymentFlow === 'link';
     if (existingId && existingId.startsWith('plink_') === useLink) {
       if (!useLink) return { orderId: existingId, isNew: false };
       // An expired or cancelled link cannot be paid any more: make a fresh one.

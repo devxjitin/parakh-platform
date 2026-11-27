@@ -8,32 +8,10 @@ import {
   type PublishResultDto,
 } from '@parakh/shared';
 import { api } from '../lib/api';
+import { runCheckout } from '../lib/checkout';
 import { Icon } from './icons';
 import { Alert, Button, describeError } from './ui';
 import { parseStudentEmails, payTotal, rupees, type PayerChoice } from './payment-step';
-
-interface RazorpaySuccess {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-}
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
-  }
-}
-
-function loadCheckout(): Promise<boolean> {
-  if (window.Razorpay) return Promise.resolve(true);
-  return new Promise((resolve) => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
 
 type StrikePolicy = ExamDetailDto['strikePolicy'];
 
@@ -195,15 +173,6 @@ export function PublishPanel({
   ];
   const ready = checks.every(([ok]) => ok);
 
-  async function confirm(payload: {
-    orderId: string;
-    paymentId: string;
-    signature: string;
-  }): Promise<void> {
-    await api<PublishResultDto>('/payments/verify', { method: 'POST', body: payload });
-    await reload();
-  }
-
   async function publishFree() {
     setError('');
     setBusy(true);
@@ -229,40 +198,10 @@ export function PublishPanel({
 
       if (order.provider === 'fake') {
         setNote('Test mode: this payment is simulated and no money is charged.');
-        const done = await api<{ orderId: string; paymentId: string; signature: string }>(
-          '/payments/fake/complete',
-          { method: 'POST', body: { orderId: order.orderId } },
-        );
-        await confirm(done);
-        return;
       }
-
-      if (!(await loadCheckout()) || !window.Razorpay) {
-        setError('Could not load the payment window. Check your connection and try again.');
-        return;
-      }
-      await new Promise<void>((resolve) => {
-        const checkout = new window.Razorpay!({
-          key: order.keyId,
-          order_id: order.orderId,
-          amount: order.amountPaise,
-          currency: order.currency,
-          name: 'Parakh by NandiVex Technologies',
-          description: order.description,
-          prefill: { name: userName, email: userEmail },
-          handler: (r: RazorpaySuccess) => {
-            confirm({
-              orderId: r.razorpay_order_id,
-              paymentId: r.razorpay_payment_id,
-              signature: r.razorpay_signature,
-            })
-              .catch((err) => setError(describeError(err).message))
-              .finally(resolve);
-          },
-          modal: { ondismiss: () => resolve() },
-        });
-        checkout.open();
-      });
+      // Opens Razorpay's window here, or sends the payer to Razorpay's page and back, as the admin chose.
+      const outcome = await runCheckout(order, { name: userName, email: userEmail });
+      if (outcome.result) await reload();
     } catch (err) {
       setError(describeError(err).message);
     } finally {
