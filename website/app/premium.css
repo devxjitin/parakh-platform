@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Parakh UI layer, loaded after globals.css.
+   NandiRank UI layer, loaded after globals.css.
    Flat and restrained: solid colours, hairline borders, small radii, one typeface (Inter),
    motion only where it helps (page fade, modal, hover colour). Re-declares the design tokens,
    refines the shared components, then styles the landing page and the exam screen.
@@ -2992,7 +2992,7 @@ body > .site-footer {
 .lp-verify > *, .cert-check, .cert-check-form, .cc-field { min-width: 0; }
 .cc-box input { width: 100%; }
 
-/* Brand lockup image (shield + arakh + tagline). The icon alone shows only when collapsed. */
+/* Brand lockup image. The icon alone shows only when collapsed. */
 .brand {
   gap: 0;
 }

@@ -47,7 +47,7 @@ resource "aws_s3_bucket_cors_configuration" "files" {
   bucket = aws_s3_bucket.files.id
   cors_rule {
     allowed_methods = ["GET", "PUT"]
-    allowed_origins = var.domain_name != "" ? ["https://${local.web_hostname}"] : ["http://localhost:3000"]
+    allowed_origins = var.domain_name != "" ? [for host in compact([local.web_hostname, local.legacy_web_hostname]) : "https://${host}"] : ["http://localhost:3000"]
     allowed_headers = ["*"]
     max_age_seconds = 3000
   }

@@ -3,7 +3,9 @@ import { ADMIN, signIn } from './helpers';
 
 // An admin can switch where people pay, any time. The choice is put back at the end so the rest of
 // the suite keeps paying inside the app.
-test('an admin switches payments between inside Parakh and the Razorpay page', async ({ page }) => {
+test('an admin switches payments between inside NandiRank and the Razorpay page', async ({
+  page,
+}) => {
   await signIn(page, ADMIN.email, ADMIN.password);
   const open = async () => {
     await page.goto('/admin/?tab=settings');
@@ -17,7 +19,7 @@ test('an admin switches payments between inside Parakh and the Razorpay page', a
 
   await open();
   // The server starts with in-app payments (Checkout).
-  const inApp = page.getByRole('radio', { name: /Inside Parakh/ });
+  const inApp = page.getByRole('radio', { name: /Inside NandiRank/ });
   const hosted = page.getByRole('radio', { name: /Razorpay page/ });
   await expect(inApp).toBeChecked();
 

@@ -1,10 +1,10 @@
-# Amazon SES sending identity for the root domain (OTP and certificate emails).
-# After apply, add the DKIM CNAME records (see outputs) in GoDaddy DNS, then request
+# Amazon SES sending identity for the sending domain (OTP and certificate emails).
+# After apply, add the DKIM CNAME records (see outputs) in DNS, then request
 # production access in the SES console (new accounts start in the sandbox).
 
 resource "aws_sesv2_email_identity" "domain" {
-  count          = var.domain_name != "" ? 1 : 0
-  email_identity = var.domain_name
+  count          = local.email_domain != "" ? 1 : 0
+  email_identity = local.email_domain
 
   dkim_signing_attributes {
     next_signing_key_length = "RSA_2048_BIT"

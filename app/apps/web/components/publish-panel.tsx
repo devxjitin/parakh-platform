@@ -87,7 +87,7 @@ export function PublishPanel({
               className="btn btn-secondary btn-link"
               target="_blank"
               rel="noopener noreferrer"
-              href={`https://wa.me/?text=${encodeURIComponent(`Join my exam "${exam.title}" on Parakh. Code: ${exam.code}\n${link}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(`Join my exam "${exam.title}" on NandiRank. Code: ${exam.code}\n${link}`)}`}
             >
               Share on WhatsApp
             </a>

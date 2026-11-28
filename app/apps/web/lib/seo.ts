@@ -1,6 +1,6 @@
 /** Where the app is served (its own address). Set NEXT_PUBLIC_APP_URL at build time. */
 export const APP_ORIGIN = (
-  process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.parakh.nandivex.com'
+  process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.nandirank.nandivex.com'
 ).replace(/\/$/, '');
 
 /** Pages a visitor can open without signing in; these may appear in search results. */

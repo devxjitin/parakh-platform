@@ -23,7 +23,7 @@ function Receipt({ r, onClose }: { r: MyReceiptDto; onClose: () => void }) {
   return (
     <section className="card receipt" aria-label={`Receipt ${r.receiptNo}`}>
       <h1>Payment receipt {r.receiptNo}</h1>
-      <p className="muted">Parakh, NandiVex Technologies</p>
+      <p className="muted">NandiRank, NandiVex Technologies</p>
       <table>
         <tbody>
           <tr>
@@ -131,7 +131,7 @@ export default function MyPaymentsPage() {
       <div className="no-print">
         <PageHeader
           title="My payments"
-          subtitle="Everything you have paid on Parakh, with a receipt for each."
+          subtitle="Everything you have paid on NandiRank, with a receipt for each."
         />
         {error && <Alert>{error}</Alert>}
         {note && <Alert kind="success">{note}</Alert>}

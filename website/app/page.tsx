@@ -20,7 +20,7 @@ const FEATURES: { icon: IconName; tone: string; title: string; text: string }[] 
     icon: 'layers',
     tone: 'indigo',
     title: 'Plan the paper first',
-    text: 'Choose the question types, how many of each and the marks per question. Parakh keeps the total marks in step with your plan and tells you what is still missing.',
+    text: 'Choose the question types, how many of each and the marks per question. NandiRank keeps the total marks in step with your plan and tells you what is still missing.',
   },
   {
     icon: 'sparkles',

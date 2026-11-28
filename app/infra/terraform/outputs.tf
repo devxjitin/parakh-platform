@@ -1,5 +1,5 @@
 output "app_public_ip" {
-  description = "Create an A record api.<domain> -> this IP at GoDaddy."
+  description = "Create an A record api.<domain> -> this IP in DNS."
   value       = aws_eip.app.public_ip
 }
 
@@ -34,9 +34,9 @@ output "cloudfront_distribution_id" {
 }
 
 output "web_certificate_validation_records" {
-  description = "Add these CNAMEs at GoDaddy so ACM can issue the web certificate."
+  description = "Add these CNAMEs in DNS so ACM can issue the web certificate."
   value = var.domain_name != "" ? [
-    for o in aws_acm_certificate.web[0].domain_validation_options : {
+    for o in try(aws_acm_certificate.web_migration[0].domain_validation_options, aws_acm_certificate.web[0].domain_validation_options) : {
       name  = o.resource_record_name
       type  = o.resource_record_type
       value = o.resource_record_value
@@ -45,10 +45,10 @@ output "web_certificate_validation_records" {
 }
 
 output "ses_dkim_records" {
-  description = "Add these CNAMEs at GoDaddy to verify the SES domain (name -> <token>.dkim.amazonses.com)."
+  description = "Add these CNAMEs in DNS to verify the SES domain (name -> <token>.dkim.amazonses.com)."
   value = var.domain_name != "" ? [
     for t in aws_sesv2_email_identity.domain[0].dkim_signing_attributes[0].tokens : {
-      name  = "${t}._domainkey.${var.domain_name}"
+      name  = "${t}._domainkey.${local.email_domain}"
       type  = "CNAME"
       value = "${t}.dkim.amazonses.com"
     }
@@ -100,7 +100,7 @@ output "site_cloudfront_distribution_id" {
 output "site_certificate_validation_records" {
   description = "Add these CNAMEs so ACM can issue the website certificate."
   value = local.site_enabled ? [
-    for o in aws_acm_certificate.site[0].domain_validation_options : {
+    for o in try(aws_acm_certificate.site_migration[0].domain_validation_options, aws_acm_certificate.site[0].domain_validation_options) : {
       name  = o.resource_record_name
       type  = o.resource_record_type
       value = o.resource_record_value

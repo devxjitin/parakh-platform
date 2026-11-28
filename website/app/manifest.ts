@@ -4,10 +4,10 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Parakh by NandiVex Technologies",
-    short_name: "Parakh",
+    name: "NandiRank by NandiVex Technologies",
+    short_name: "NandiRank",
     description:
-      "Parakh by NandiVex Technologies: create, proctor and grade online exams, and issue certificates anyone can verify with a serial number and QR code.",
+      "NandiRank by NandiVex Technologies: create, proctor and grade online exams, and issue certificates anyone can verify with a serial number and QR code.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

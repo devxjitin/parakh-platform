@@ -6,15 +6,15 @@ export default function TermsPage() {
   return (
     <LegalPage title="Terms of use" updated="last updated 24 November 2026" draft={false}>
       <p>
-        Welcome to Parakh. By accessing or using our platform at app.parakh.nandivex.com, you agree
-        to comply with and be bound by these Terms of Use.
+        Welcome to NandiRank. By accessing or using our platform at app.nandirank.nandivex.com, you
+        agree to comply with and be bound by these Terms of Use.
       </p>
 
       <h2>1. Who we are</h2>
       <p>
-        Parakh (&quot;Service&quot;, &quot;Platform&quot;) is an online examination, assessment and
-        digital certificate verification service operated by NandiVex Technologies (&quot;we&quot;,
-        &quot;us&quot;, &quot;our&quot;).
+        NandiRank (&quot;Service&quot;, &quot;Platform&quot;) is an online examination, assessment
+        and digital certificate verification service operated by NandiVex Technologies
+        (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;).
       </p>
 
       <h2>2. User accounts</h2>

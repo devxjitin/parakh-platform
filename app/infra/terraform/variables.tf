@@ -17,8 +17,14 @@ variable "region" {
   default = "ap-south-1" # Mumbai
 }
 
+variable "legacy_domain_name" {
+  description = "Previous production domain for existing links and the verified email identity."
+  type        = string
+  default     = ""
+}
+
 variable "domain_name" {
-  description = "Root domain registered at GoDaddy (e.g. example.com). Leave empty to skip certificates/SES identity until the domain is decided."
+  description = "Product domain (e.g. example.com). Leave empty to skip certificates/SES identity until the domain is decided."
   type        = string
   default     = ""
 }

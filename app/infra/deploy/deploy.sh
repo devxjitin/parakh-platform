@@ -2,6 +2,7 @@
 # Runs ON the EC2 host (invoked by GitHub Actions or manually through SSM Run Command).
 # Required environment: ENVIRONMENT, AWS_REGION, FILES_BUCKET, ECR_REGISTRY, IMAGE_TAG,
 #                       API_HOST, WEB_ORIGIN, DB_HOST, DB_SECRET_ARN
+# Optional: LEGACY_API_HOST, WEBSITE_ORIGIN
 set -euo pipefail
 
 APP_DIR=/opt/parakh
@@ -14,7 +15,7 @@ cd "$APP_DIR"
 cat > .deploy.env <<EOF
 ECR_REGISTRY=${ECR_REGISTRY}
 IMAGE_TAG=${IMAGE_TAG}
-API_HOST=${API_HOST}
+API_HOSTS=${API_HOST}${LEGACY_API_HOST:+, ${LEGACY_API_HOST}}
 ENVIRONMENT=${ENVIRONMENT}
 AWS_REGION=${AWS_REGION}
 EOF
@@ -49,6 +50,9 @@ unset DB_SECRET
     while IFS=$'\t' read -r name value; do
       echo "${name##*/}=${value}"
     done
+  if [[ -n "${WEBSITE_ORIGIN:-}" ]]; then
+    echo "WEBSITE_ORIGIN=${WEBSITE_ORIGIN}"
+  fi
 } > .env
 chmod 600 .env .deploy.env
 

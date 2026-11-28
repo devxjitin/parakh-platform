@@ -37,7 +37,7 @@ const esc = (s: string) =>
 function layout(title: string, bodyHtml: string): string {
   return `<div style="font-family:system-ui,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
 <h2 style="margin:0 0 16px">${esc(title)}</h2>${bodyHtml}
-<p style="color:#666;font-size:12px;margin-top:32px">Parakh by NandiVex Technologies. If you did not request this, you can ignore this email.</p></div>`;
+<p style="color:#666;font-size:12px;margin-top:32px">NandiRank by NandiVex Technologies. If you did not request this, you can ignore this email.</p></div>`;
 }
 
 function codeBlock(code: string): string {
@@ -90,8 +90,8 @@ export class MailService {
     const minutes = this.env.OTP_TTL_MIN;
     return this.deliver({
       to,
-      subject: 'Verify your Parakh email',
-      text: `Hi ${name},\n\nYour Parakh verification code is ${code}. It expires in ${minutes} minutes.\n`,
+      subject: 'Verify your NandiRank email',
+      text: `Hi ${name},\n\nYour NandiRank verification code is ${code}. It expires in ${minutes} minutes.\n`,
       html: layout(
         'Verify your email',
         `<p>Hi ${esc(name)}, use this code to verify your email. It expires in ${minutes} minutes.</p>${codeBlock(code)}`,
@@ -103,7 +103,7 @@ export class MailService {
     const minutes = this.env.OTP_TTL_MIN;
     return this.deliver({
       to,
-      subject: 'Reset your Parakh password',
+      subject: 'Reset your NandiRank password',
       text: `Hi ${name},\n\nYour password reset code is ${code}. It expires in ${minutes} minutes.\n`,
       html: layout(
         'Reset your password',
@@ -220,7 +220,7 @@ Your payment for "${r.examTitle}" went through after the exam's closing time had
   sendAccountExists(to: string, name: string) {
     return this.deliver({
       to,
-      subject: 'You already have an Parakh account',
+      subject: 'You already have a NandiRank account',
       text: `Hi ${name},\n\nSomeone tried to register with this email, but you already have an account. Sign in, or use "Forgot password" if needed.\n`,
       html: layout(
         'You already have an account',
@@ -233,11 +233,11 @@ Your payment for "${r.examTitle}" went through after the exam's closing time had
   sendAccountDeleted(to: string, name: string) {
     return this.deliver({
       to,
-      subject: 'Your Parakh account was closed',
-      text: `Hi ${name},\n\nYour Parakh account was closed and your name, email and phone were removed. Payment records and issued certificates are kept, as our privacy policy explains.\n\nIf this was not you, contact us straight away through the contact page.\n`,
+      subject: 'Your NandiRank account was closed',
+      text: `Hi ${name},\n\nYour NandiRank account was closed and your name, email and phone were removed. Payment records and issued certificates are kept, as our privacy policy explains.\n\nIf this was not you, contact us straight away through the contact page.\n`,
       html: layout(
         'Your account was closed',
-        `<p>Hi ${esc(name)}, your Parakh account was closed and your name, email and phone were removed. Payment records and issued certificates are kept, as our privacy policy explains.</p><p>If this was not you, contact us straight away through the contact page.</p>`,
+        `<p>Hi ${esc(name)}, your NandiRank account was closed and your name, email and phone were removed. Payment records and issued certificates are kept, as our privacy policy explains.</p><p>If this was not you, contact us straight away through the contact page.</p>`,
       ),
     });
   }
@@ -245,7 +245,7 @@ Your payment for "${r.examTitle}" went through after the exam's closing time had
   sendPasswordChanged(to: string, name: string) {
     return this.deliver({
       to,
-      subject: 'Your Parakh password was changed',
+      subject: 'Your NandiRank password was changed',
       text: `Hi ${name},\n\nYour password was just changed. If this was not you, reset your password immediately.\n`,
       html: layout(
         'Password changed',
@@ -450,10 +450,10 @@ A practice code for the same questions will be emailed to you separately.
     return this.deliver({
       to,
       subject: `Payout of INR ${rupees} sent`,
-      text: `Hi ${name},\n\nNandiVex Technologies has sent your Parakh earnings.\n\nAmount: INR ${rupees}\nSent to: ${r.destination}\nReference (UTR): ${r.utr}\nDate: ${date}\n`,
+      text: `Hi ${name},\n\nNandiVex Technologies has sent your NandiRank earnings.\n\nAmount: INR ${rupees}\nSent to: ${r.destination}\nReference (UTR): ${r.utr}\nDate: ${date}\n`,
       html: layout(
         'Your payout was sent',
-        `<p>Hi ${esc(name)}, NandiVex Technologies has sent your Parakh earnings.</p><p style="font-size:14px">Amount: <strong>INR ${rupees}</strong><br>Sent to: ${esc(r.destination)}<br>Reference (UTR): <strong>${esc(r.utr)}</strong><br>Date: ${date}</p>`,
+        `<p>Hi ${esc(name)}, NandiVex Technologies has sent your NandiRank earnings.</p><p style="font-size:14px">Amount: <strong>INR ${rupees}</strong><br>Sent to: ${esc(r.destination)}<br>Reference (UTR): <strong>${esc(r.utr)}</strong><br>Date: ${date}</p>`,
       ),
     });
   }
@@ -514,7 +514,7 @@ A practice code for the same questions will be emailed to you separately.
   sendJoinCode(to: string, name: string, examTitle: string, code: string) {
     return this.deliver({
       to,
-      subject: `Your Parakh code: ${code}`,
+      subject: `Your NandiRank code: ${code}`,
       text: `Hi ${name},
 
 Your code to join "${examTitle}" is ${code}. It expires soon. If you did not ask for it, ignore this email.
@@ -630,7 +630,7 @@ Practice is not an exam: it has no payment and no certificate, and it does not c
     return this.deliver({
       to,
       subject: `You are invited to "${r.examTitle}"`,
-      text: `Hello,\n\n${r.trainerName} has invited you to the exam "${r.examTitle}" on Parakh.\n\nTotal marks: ${r.totalMarks}\nDuration: ${r.durationMinutes} minutes\n${when}\n\nExam code: ${r.code}\nTo take the exam open ${url}, enter your name and this email address, confirm the code we send you, and press Start.\n${certText}`,
+      text: `Hello,\n\n${r.trainerName} has invited you to the exam "${r.examTitle}" on NandiRank.\n\nTotal marks: ${r.totalMarks}\nDuration: ${r.durationMinutes} minutes\n${when}\n\nExam code: ${r.code}\nTo take the exam open ${url}, enter your name and this email address, confirm the code we send you, and press Start.\n${certText}`,
       html: layout(
         'You are invited to an exam',
         `<p>${esc(r.trainerName)} has invited you to the exam <strong>${esc(r.examTitle)}</strong>.</p><p style="font-size:14px">Total marks: <strong>${r.totalMarks}</strong><br>Duration: <strong>${r.durationMinutes} minutes</strong><br>${esc(when)}</p><p>Exam code:</p>${codeBlock(r.code)}<p><a href="${esc(url)}">Open the join page</a>, enter your name and this email address, confirm the code we send you, and press Start.</p>${certHtml}`,

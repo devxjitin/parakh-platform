@@ -6,8 +6,8 @@ export default function RefundPolicyPage() {
   return (
     <LegalPage title="Refund policy" updated="last updated 24 November 2026" draft={false}>
       <p>
-        This policy sets out the terms for cancellations and refunds for services bought on Parakh
-        (app.parakh.nandivex.com), operated by NandiVex Technologies.
+        This policy sets out the terms for cancellations and refunds for services bought on
+        NandiRank (app.nandirank.nandivex.com), operated by NandiVex Technologies.
       </p>
 
       <h2>1. For students</h2>
@@ -19,7 +19,7 @@ export default function RefundPolicyPage() {
         </li>
         <li>
           <b>Platform-wide outage:</b> if an exam cannot be completed because of a verified outage
-          on the Parakh servers, we will give you a free re-test or a full refund, at our
+          on the NandiRank servers, we will give you a free re-test or a full refund, at our
           discretion.
         </li>
         <li>

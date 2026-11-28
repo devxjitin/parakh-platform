@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import './common/sentry';
 import { NestFactory } from '@nestjs/core';
+import { BRAND } from '@parakh/shared';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { configureApp } from './configure-app';
@@ -16,7 +17,7 @@ async function bootstrap() {
   configureApp(app);
   const env = app.get<Env>(ENV);
   await app.listen(env.PORT, '0.0.0.0');
-  console.log(`Parakh API listening on :${env.PORT}`);
+  console.log(`${BRAND.PRODUCT} API listening on :${env.PORT}`);
 }
 
 void bootstrap();

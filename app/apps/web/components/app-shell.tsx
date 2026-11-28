@@ -6,19 +6,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { Icon, type IconName } from './icons';
 
-/** Brand lockup (shield + "arakh" + tagline); the icon alone shows when the sidebar is collapsed. */
+/** The icon alone shows when the sidebar is collapsed. */
 export function Brand({ compact, light }: { compact?: boolean; light?: boolean }) {
   return (
     <Link
       href="/"
       className={`brand${light ? ' brand-light' : ''}${compact ? ' brand-compact' : ''}`}
-      aria-label="Parakh by NandiVex Technologies"
+      aria-label="NandiRank by NandiVex Technologies"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         className="brand-logo"
         src={light ? '/parakh-logo-white.png' : '/parakh-logo.png'}
-        alt="Parakh by NandiVex Technologies"
+        alt="NandiRank by NandiVex Technologies"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -244,7 +244,7 @@ export function AppShell({ children, narrow }: { children: React.ReactNode; narr
             <Icon name="panel" />
           </button>
           <nav className="crumbs" aria-label="Breadcrumb">
-            <span>Parakh</span>
+            <span>NandiRank</span>
             {crumbs.map((c, i) => (
               <span key={i} className={i === crumbs.length - 1 ? 'crumb-current' : undefined}>
                 <Icon name="chevron" size={14} />

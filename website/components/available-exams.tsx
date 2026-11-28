@@ -11,7 +11,7 @@ type State =
   | { kind: "error" };
 
 /**
- * The exams students can take any time. Read live from the Parakh API, so an exam an admin
+ * The exams students can take any time. Read live from the NandiRank API, so an exam an admin
  * publishes shows up here without anyone editing or rebuilding this page.
  */
 export function AvailableExams() {

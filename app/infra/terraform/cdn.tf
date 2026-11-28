@@ -11,8 +11,20 @@ resource "aws_cloudfront_origin_access_control" "web" {
 resource "aws_acm_certificate" "web" {
   count             = var.domain_name != "" ? 1 : 0
   provider          = aws.us_east_1
-  domain_name       = local.web_hostname
+  domain_name       = local.legacy_web_hostname != "" ? local.legacy_web_hostname : local.web_hostname
   validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate" "web_migration" {
+  count                     = var.domain_name != "" && local.legacy_web_hostname != "" ? 1 : 0
+  provider                  = aws.us_east_1
+  domain_name               = local.web_hostname
+  subject_alternative_names = [local.legacy_web_hostname]
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
@@ -54,9 +66,7 @@ resource "aws_cloudfront_response_headers_policy" "web_security" {
         "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob: https://cdn.razorpay.com",
-        "connect-src ${join(" ", compact([
-          "'self'",
-          local.api_hostname != "" ? "https://${local.api_hostname}" : "",
+        "connect-src ${join(" ", concat(["'self'"], local.api_origins, [
           "https://api.razorpay.com https://api-dark.razorpay.com https://checkout.razorpay.com https://cdn.razorpay.com",
           "https://lumberjack.razorpay.com https://lumberjack-cx.razorpay.com https://lumberjack-metrics.razorpay.com",
           "https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
@@ -95,7 +105,7 @@ resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_200" # includes India
-  aliases             = var.domain_name != "" ? [local.web_hostname] : []
+  aliases             = compact([local.web_hostname, local.legacy_web_hostname])
   comment             = "${local.name} web"
 
   origin {
@@ -144,7 +154,7 @@ resource "aws_cloudfront_distribution" "web" {
 
   viewer_certificate {
     cloudfront_default_certificate = var.domain_name == ""
-    acm_certificate_arn            = var.domain_name != "" ? aws_acm_certificate.web[0].arn : null
+    acm_certificate_arn            = var.domain_name != "" ? try(aws_acm_certificate.web_migration[0].arn, aws_acm_certificate.web[0].arn) : null
     ssl_support_method             = var.domain_name != "" ? "sni-only" : null
     minimum_protocol_version       = var.domain_name != "" ? "TLSv1.2_2021" : null
   }

@@ -1,7 +1,7 @@
-# Parakh (local workspace)
+# NandiRank (local workspace)
 
-- `app/`      the Parakh product: API (NestJS), web app (Next.js), shared packages. Git repository.
-- `website/`  the Parakh landing page and public certificate check. Static Next.js project.
+- `app/`      the NandiRank product: API (NestJS), web app (Next.js), shared packages. Git repository.
+- `website/`  the NandiRank landing page and public certificate check. Static Next.js project.
 - `docker-compose.yml`  runs everything on Docker Desktop. Nothing is deployed, nothing real is charged or emailed.
 
 ## Run it
@@ -22,7 +22,7 @@
 
 Emails are printed in the API log. To see the latest code:
 
-    docker compose logs api --since 5m | Select-String "Your Parakh|code is"
+    docker compose logs api --since 5m | Select-String "Your NandiRank|code is"
 
 Payments use the simulated checkout, so publishing and joining need no card.
 

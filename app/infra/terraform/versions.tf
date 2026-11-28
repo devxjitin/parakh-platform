@@ -51,11 +51,17 @@ locals {
   azs     = slice(data.aws_availability_zones.available.names, 0, 2)
   is_prod = var.environment == "production"
 
-  # Production: the marketing website lives at <domain> (parakh.nandivex.com), the web app at
+  # Production: the marketing website lives at <domain> (nandirank.nandivex.com), the web app at
   # app.<domain> and the API at api.<domain>. Other environments use app-<env>.<domain> and
   # api-<env>.<domain> and have no marketing website. Certificate checks are a page of the web app
   # (/verify/) and a form on the website, so they need no hostname of their own.
   web_hostname  = var.domain_name == "" ? "" : (local.is_prod ? "app.${var.domain_name}" : "app-${var.environment}.${var.domain_name}")
   site_hostname = var.domain_name != "" && local.is_prod ? var.domain_name : ""
   api_hostname  = var.domain_name != "" ? "${var.environment == "production" ? "api" : "api-${var.environment}"}.${var.domain_name}" : ""
+
+  legacy_site_hostname = local.is_prod ? var.legacy_domain_name : ""
+  legacy_web_hostname  = local.legacy_site_hostname != "" ? "app.${local.legacy_site_hostname}" : ""
+  legacy_api_hostname  = local.legacy_site_hostname != "" ? "api.${local.legacy_site_hostname}" : ""
+  api_origins          = [for host in compact([local.api_hostname, local.legacy_api_hostname]) : "https://${host}"]
+  email_domain         = local.legacy_site_hostname != "" ? local.legacy_site_hostname : var.domain_name
 }

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
   title: 'Join an exam',
-  description: 'Enter your exam code to join an online exam on Parakh.',
+  description: 'Enter your exam code to join an online exam on NandiRank.',
   alternates: { canonical: '/join/' },
 };
 

@@ -1,9 +1,9 @@
-/** Where the Parakh app lives. Sign in, Get started and Join links point here. */
+/** Where the NandiRank app lives. Sign in, Get started and Join links point here. */
 export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(
   /\/$/,
   '',
 );
-/** The Parakh API, used by the public certificate check. */
+/** The NandiRank API, used by the public certificate check. */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 /** A link into the app, for example appUrl('/login/'). */
