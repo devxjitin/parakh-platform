@@ -1,6 +1,7 @@
 environment = "production"
 
-domain_name = "parakh.nandivex.com" # website at the root, app at app.<domain>, API at api.<domain>
+domain_name        = "nandirank.nandivex.com"
+legacy_domain_name = "parakh.nandivex.com" # Keep existing exam links and certificate QR codes working.
 
 ec2_instance_type           = "m6g.medium" # no t4g capacity in Mumbai on 2026-11-24; t4g.small/medium later
 app_subnet_index            = 0

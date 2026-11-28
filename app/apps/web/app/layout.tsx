@@ -11,35 +11,35 @@ import './globals.css';
 import './premium.css';
 
 const DESCRIPTION =
-  'Parakh by NandiVex Technologies: create, proctor and grade online exams, and issue certificates anyone can verify with a serial number and QR code.';
+  'NandiRank by NandiVex Technologies: create, proctor and grade online exams, and issue certificates anyone can verify with a serial number and QR code.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_ORIGIN),
-  title: { default: 'Parakh | Online exams and verified certificates', template: '%s | Parakh' },
+  title: { default: 'NandiRank | Online exams and verified certificates', template: '%s | NandiRank' },
   description: DESCRIPTION,
-  applicationName: 'Parakh',
+  applicationName: 'NandiRank',
   authors: [{ name: 'NandiVex Technologies' }],
   creator: 'NandiVex Technologies',
   publisher: 'NandiVex Technologies',
   openGraph: {
     type: 'website',
-    siteName: 'Parakh',
+    siteName: 'NandiRank',
     locale: 'en_IN',
-    title: 'Parakh | Online exams and verified certificates',
+    title: 'NandiRank | Online exams and verified certificates',
     description: DESCRIPTION,
     images: [
-      { url: '/og-image.png', width: 1200, height: 630, alt: 'Parakh by NandiVex Technologies' },
+      { url: '/og-image.png', width: 1200, height: 630, alt: 'NandiRank by NandiVex Technologies' },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Parakh | Online exams and verified certificates',
+    title: 'NandiRank | Online exams and verified certificates',
     description: DESCRIPTION,
     images: ['/og-image.png'],
   },
   // Signed-in pages override this with noindex in their own layout.
   robots: { index: true, follow: true },
-  // The tab icon is the Parakh badge: .ico for older browsers, PNGs for modern ones.
+  // The tab icon is the NandiRank badge: .ico for older browsers, PNGs for modern ones.
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

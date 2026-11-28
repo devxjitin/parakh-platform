@@ -22,7 +22,7 @@ import {
 import { PromptDialog } from './ai-paper/prompt-dialog';
 
 // "Build with AI": the trainer describes the paper, copies a prompt into any outside AI and
-// pastes the JSON answer back. Parakh never calls an AI service itself.
+// pastes the JSON answer back. NandiRank never calls an AI service itself.
 
 export function AiPaperBuilder({
   exam,
@@ -152,7 +152,7 @@ export function AiPaperBuilder({
       <p className="ai-note">
         <Icon name="shield" size={16} />
         <span>
-          Parakh does not send anything to an AI for you, and nothing is added until you have
+          NandiRank does not send anything to an AI for you, and nothing is added until you have
           checked it.
         </span>
       </p>
@@ -225,7 +225,7 @@ export function AiPaperBuilder({
             <span className="ai-num">2</span> Topics ({form.topics.length})
           </legend>
           <p className="muted ai-hint">
-            Add at least one topic the questions should cover. Parakh shares the questions evenly
+            Add at least one topic the questions should cover. NandiRank shares the questions evenly
             between your topics.
           </p>
           {form.topics.map((t, i) => (

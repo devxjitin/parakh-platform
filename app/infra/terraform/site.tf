@@ -40,8 +40,20 @@ resource "aws_cloudfront_origin_access_control" "site" {
 resource "aws_acm_certificate" "site" {
   count             = local.site_enabled ? 1 : 0
   provider          = aws.us_east_1
-  domain_name       = local.site_hostname
+  domain_name       = local.legacy_site_hostname != "" ? local.legacy_site_hostname : local.site_hostname
   validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate" "site_migration" {
+  count                     = local.site_enabled && local.legacy_site_hostname != "" ? 1 : 0
+  provider                  = aws.us_east_1
+  domain_name               = local.site_hostname
+  subject_alternative_names = [local.legacy_site_hostname]
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
@@ -60,7 +72,7 @@ resource "aws_cloudfront_response_headers_policy" "site_security" {
         "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
-        "connect-src 'self' https://${local.api_hostname}",
+        "connect-src 'self' ${join(" ", local.api_origins)}",
         "frame-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
@@ -96,7 +108,7 @@ resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_200" # includes India
-  aliases             = [local.site_hostname]
+  aliases             = compact([local.site_hostname, local.legacy_site_hostname])
   comment             = "${local.name} website"
 
   origin {
@@ -145,7 +157,7 @@ resource "aws_cloudfront_distribution" "site" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.site[0].arn
+    acm_certificate_arn      = try(aws_acm_certificate.site_migration[0].arn, aws_acm_certificate.site[0].arn)
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }

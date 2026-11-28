@@ -82,7 +82,7 @@ export class SesTransport implements MailTransport {
   }
 
   async send(message: MailMessage): Promise<string | undefined> {
-    const from = `Parakh <${this.from}>`;
+    const from = `NandiRank <${this.from}>`;
     const res = await this.client.send(
       new SendEmailCommand({
         FromEmailAddress: from,
@@ -122,7 +122,7 @@ export class SmtpTransport implements MailTransport {
   private readonly from: string;
 
   constructor(opts: SmtpOptions) {
-    this.from = opts.from.includes('<') ? opts.from : `Parakh <${opts.from}>`;
+    this.from = opts.from.includes('<') ? opts.from : `NandiRank <${opts.from}>`;
     this.transporter = createTransport({
       host: opts.host,
       port: opts.port,

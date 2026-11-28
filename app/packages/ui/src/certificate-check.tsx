@@ -38,7 +38,7 @@ export function CertificateCheck({
   requiredMark,
 }: {
   initialSerial?: string;
-  /** The Parakh API address the serial number is checked against. */
+  /** The NandiRank API address the serial number is checked against. */
   apiUrl: string;
   /** Shown after the field label (the app marks required fields; the website does not). */
   requiredMark?: ReactNode;
@@ -164,7 +164,7 @@ export function CertificateCheck({
                     </span>
                     <div>
                       <h4>This certificate is genuine</h4>
-                      <p>It was issued through Parakh and is still valid.</p>
+                      <p>It was issued through NandiRank and is still valid.</p>
                     </div>
                   </div>
                   <div className="cc-holder">

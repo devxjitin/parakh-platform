@@ -92,3 +92,40 @@ AWS access uses GitHub OIDC (no stored AWS keys).
 | `WEB_HOSTNAME`               | `web_hostname`               |
 
 4. Secrets for the API (JWT keys, Razorpay, DB URL, ...) go in AWS SSM Parameter Store as `/parakh/production/NAME`. `deploy.sh` writes them into the server's `.env`.
+
+## NandiRank domain cutover
+
+The website will move to `nandirank.nandivex.com`, the app to
+`app.nandirank.nandivex.com`, and the API to `api.nandirank.nandivex.com`.
+Keep the existing Parakh DNS records for previously
+shared exam links, certificate QR codes and incoming webhooks. The verified SES
+sender address stays on the Parakh domain.
+
+1. From `app/infra/terraform`, plan and apply only the two new ACM certificates
+   first. Use `-var-file=envs/production.tfvars` with
+   `-target=aws_acm_certificate.web_migration` and
+   `-target=aws_acm_certificate.site_migration`.
+2. In Squarespace DNS, add the CNAMEs from Terraform's
+   `web_certificate_validation_records` and `site_certificate_validation_records`
+   outputs. Wait for both certificates in ACM (us-east-1) to show **Issued**.
+3. Review and apply the full production Terraform plan. Add the new site and app
+   CNAMEs using `site_cloudfront_domain` and `cloudfront_domain`, and the new API
+   A record using `app_public_ip`.
+4. In the GitHub `production` environment, set the compatibility variables before
+   switching the primary hostnames:
+
+   | Variable | Value |
+   | --- | --- |
+   | `LEGACY_SITE_HOSTNAME` | `parakh.nandivex.com` |
+   | `LEGACY_WEB_HOSTNAME` | `app.parakh.nandivex.com` |
+   | `LEGACY_API_HOSTNAME` | `api.parakh.nandivex.com` |
+   | `SITE_HOSTNAME` | `nandirank.nandivex.com` |
+   | `WEB_HOSTNAME` | `app.nandirank.nandivex.com` |
+   | `API_HOSTNAME` | `api.nandirank.nandivex.com` |
+
+5. If the existing SSM `VERIFY_BASE_URL` overrides the app origin, set it to
+   `https://app.nandirank.nandivex.com` for newly issued certificates. Run
+   **Deploy production** from the ref containing the rebrand.
+6. Check both API health URLs, new-site sign-in and certificate verification,
+   a previously issued certificate URL and a previously shared exam URL.
+   Publish the NandiVex corporate product page after the new site is reachable.

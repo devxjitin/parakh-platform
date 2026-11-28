@@ -115,21 +115,21 @@ const longDate = (d: Date) =>
   });
 
 /**
- * Draws one certificate as an A4 landscape PDF: the trainer's logo plus the Parakh and NandiVex logos, the
+ * Draws one certificate as an A4 landscape PDF: the trainer's logo plus the NandiRank and NandiVex logos, the
  * holder, the exam, a signature line, the serial number and a QR code that opens the public
  * verification page.
  */
 export async function renderCertificate(input: {
   facts: CertificateFacts;
   trainerLogo: Buffer | null;
-  /** A NandiVex-run exam: no trainer logo, the Parakh and NandiVex logos centred at the top. */
+  /** A NandiVex-run exam: no trainer logo, the NandiRank and NandiVex logos centred at the top. */
   nandivexOnly?: boolean;
 }): Promise<Buffer> {
   const { facts } = input;
   const doc = await PDFDocument.create();
   doc.setTitle(`${CERT_KIND_TITLE[facts.kind]} - ${facts.serialNo}`);
-  doc.setAuthor('Parakh by NandiVex Technologies');
-  doc.setProducer('Parakh');
+  doc.setAuthor('NandiRank by NandiVex Technologies');
+  doc.setProducer('NandiRank');
   const page = doc.addPage([W, H]);
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -198,8 +198,8 @@ export async function renderCertificate(input: {
   page.drawSvgPath('M -104 0 L -118 0 L 0 -118 L 0 -104 Z', { x: W, y: 0, color: ORANGE });
 
   // ---- logos: one centred row with a thin divider between each. The trainer's logo (when there is
-  // one) comes first, then the full Parakh logo, then the full NandiVex Technologies logo. A
-  // NandiVex-run exam has no trainer logo, so it is just Parakh | NandiVex.
+  // one) comes first, then the full NandiRank logo, then the full NandiVex Technologies logo. A
+  // NandiVex-run exam has no trainer logo, so it is just NandiRank | NandiVex.
   const logoY = H - 118;
   const logoH = 72;
   const gap = 40;
@@ -320,7 +320,7 @@ export async function renderCertificate(input: {
     font: regular,
     color: GREY,
   });
-  const issuer = 'Issued through Parakh by NandiVex Technologies';
+  const issuer = 'Issued through NandiRank by NandiVex Technologies';
   drawCentred(issuer, regular, 8, 38, GREY);
 
   if (facts.sample) {

@@ -7,7 +7,7 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "../lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: SITE_TITLE, template: "%s | Parakh" },
+  title: { default: SITE_TITLE, template: "%s | NandiRank" },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "verified certificates",
     "certificate verification",
     "exam software for trainers",
-    "Parakh",
+    "NandiRank",
     "NandiVex Technologies",
   ],
   authors: [{ name: "NandiVex Technologies" }],
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Parakh by NandiVex Technologies",
+        alt: "NandiRank by NandiVex Technologies",
       },
     ],
   },
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  // The tab icon is the Parakh badge: .ico for older browsers, PNGs for modern ones.
+  // The tab icon is the NandiRank badge: .ico for older browsers, PNGs for modern ones.
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

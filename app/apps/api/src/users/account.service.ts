@@ -98,7 +98,7 @@ export class AccountService {
     const profile = me.examinerProfile;
     return {
       exportedAt: new Date().toISOString(),
-      note: 'Everything Parakh holds about this account. Passwords, codes and sign-in tokens are never included.',
+      note: 'Everything NandiRank holds about this account. Passwords, codes and sign-in tokens are never included.',
       account: {
         name: me.name,
         email: me.email,

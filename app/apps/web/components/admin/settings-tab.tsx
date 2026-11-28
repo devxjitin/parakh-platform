@@ -59,7 +59,7 @@ export function Settings() {
     }
     if (
       !(await confirmDialog(
-        `Publishing fee ${rupees(body.examCreationPaise)}, join fee ${rupees(body.examJoinPaise)}.\nPayment page: ${paymentFlow === 'link' ? 'Razorpay hosted page (external link)' : 'inside Parakh (Razorpay Checkout)'}.\n\nThis applies to payments made from now on. Save?`,
+        `Publishing fee ${rupees(body.examCreationPaise)}, join fee ${rupees(body.examJoinPaise)}.\nPayment page: ${paymentFlow === 'link' ? 'Razorpay hosted page (external link)' : 'inside NandiRank (Razorpay Checkout)'}.\n\nThis applies to payments made from now on. Save?`,
         { title: 'Change platform fees', confirmLabel: 'Save' },
       ))
     ) {
@@ -100,7 +100,7 @@ export function Settings() {
               onChange={() => setForm({ ...form, paymentFlow: 'checkout' })}
             />
             <span className="pay-option-text">
-              <b>Inside Parakh</b>
+              <b>Inside NandiRank</b>
               <small>
                 Razorpay&apos;s payment window opens on top of the page. Nobody leaves the site.
               </small>

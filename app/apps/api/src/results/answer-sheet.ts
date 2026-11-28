@@ -68,7 +68,7 @@ export async function renderAnswerSheet(input: {
   const { result } = input;
   const doc = await PDFDocument.create();
   doc.setTitle(`Answer sheet - ${result.examTitle}`);
-  doc.setAuthor('Parakh by NandiVex Technologies');
+  doc.setAuthor('NandiRank by NandiVex Technologies');
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
@@ -156,7 +156,7 @@ export async function renderAnswerSheet(input: {
 
   const pages = doc.getPages();
   pages.forEach((p, i) => {
-    const label = `Parakh by NandiVex Technologies   |   Page ${i + 1} of ${pages.length}`;
+    const label = `NandiRank by NandiVex Technologies   |   Page ${i + 1} of ${pages.length}`;
     p.drawText(label, {
       x: W / 2 - regular.widthOfTextAtSize(label, 8) / 2,
       y: 24,

@@ -1,16 +1,18 @@
-# Parakh: the whole product on Docker Desktop, nothing deployed.
+# NandiRank: the whole product on Docker Desktop, nothing deployed.
 #
 #   docker compose up -d        start everything (first run installs packages, takes a few minutes)
 #   docker compose logs -f api  watch the API; sign-in codes and emails are printed here
 #   docker compose down         stop (data is kept)   |   docker compose down -v   stop and wipe data
 #
 # App      http://localhost:3000   (trainer app and student join/exam pages)
-# Website  http://localhost:3100   (Parakh landing page)
+# Website  http://localhost:3100   (NandiRank landing page)
 # API      http://localhost:4000/health
 # Database localhost:5440  (user parakh, password parakh, database parakh)
 #
 # Payments are fake (the checkout is simulated) and emails are written to the API log, so nothing
 # real is charged or sent. Source code is mounted from ./app and ./website and reloads on save.
+
+name: nandirank
 
 x-node: &node
   image: node:22-alpine
@@ -112,6 +114,7 @@ services:
       <<: *node-env
       NEXT_PUBLIC_API_URL: http://localhost:4000
       NEXT_PUBLIC_WEBSITE_URL: http://localhost:3100
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
     command: npm run dev -w @parakh/web -- -H 0.0.0.0
 
   website:
@@ -119,12 +122,14 @@ services:
     working_dir: /site
     volumes:
       - ./website:/site
+      - ./app/packages:/app/packages:ro
       - website_node_modules:/site/node_modules
       - website_next:/site/.next
     ports:
       - "3100:3100"
     environment:
       <<: *node-env
+      NEXT_PUBLIC_SITE_URL: http://localhost:3100
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_API_URL: http://localhost:4000
     command: >

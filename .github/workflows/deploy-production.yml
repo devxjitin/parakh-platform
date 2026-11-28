@@ -28,6 +28,9 @@ jobs:
     environment: production
     env:
       IMAGE_TAG: ${{ github.sha }}
+      LEGACY_API_HOST: ${{ vars.LEGACY_API_HOSTNAME }}
+      LEGACY_WEB_HOST: ${{ vars.LEGACY_WEB_HOSTNAME }}
+      LEGACY_SITE_HOST: ${{ vars.LEGACY_SITE_HOSTNAME }}
     steps:
       - uses: actions/checkout@v5
       - uses: aws-actions/configure-aws-credentials@v6
@@ -49,6 +52,8 @@ jobs:
         run: |
           set -euo pipefail
           REGISTRY="${{ steps.ecr.outputs.registry }}"
+          WEB_ORIGIN="https://${{ vars.WEB_HOSTNAME }}${LEGACY_WEB_HOST:+,https://$LEGACY_WEB_HOST}"
+          WEBSITE_ORIGIN="https://${{ vars.SITE_HOSTNAME }}${LEGACY_SITE_HOST:+,https://$LEGACY_SITE_HOST}"
           CMD_ID=$(aws ssm send-command \
             --instance-ids "${{ vars.INSTANCE_ID }}" \
             --document-name AWS-RunShellScript \
@@ -59,7 +64,7 @@ jobs:
               \"mkdir -p /opt/parakh && cd /opt/parakh\",
               \"aws s3 cp s3://${{ vars.FILES_BUCKET }}/deploy/ . --recursive --region $AWS_REGION\",
               \"chmod +x deploy.sh\",
-              \"ENVIRONMENT=$ENVIRONMENT AWS_REGION=$AWS_REGION FILES_BUCKET=${{ vars.FILES_BUCKET }} ECR_REGISTRY=$REGISTRY IMAGE_TAG=$IMAGE_TAG API_HOST=${{ vars.API_HOSTNAME }} WEB_ORIGIN=https://${{ vars.WEB_HOSTNAME }} DB_HOST=${{ vars.DB_HOST }} DB_SECRET_ARN=${{ vars.DB_SECRET_ARN }} ./deploy.sh\"
+              \"ENVIRONMENT=$ENVIRONMENT AWS_REGION=$AWS_REGION FILES_BUCKET=${{ vars.FILES_BUCKET }} ECR_REGISTRY=$REGISTRY IMAGE_TAG=$IMAGE_TAG API_HOST=${{ vars.API_HOSTNAME }} LEGACY_API_HOST=$LEGACY_API_HOST WEB_ORIGIN=$WEB_ORIGIN WEBSITE_ORIGIN=$WEBSITE_ORIGIN DB_HOST=${{ vars.DB_HOST }} DB_SECRET_ARN=${{ vars.DB_SECRET_ARN }} ./deploy.sh\"
             ]" \
             --query Command.CommandId --output text)
           aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "${{ vars.INSTANCE_ID }}" || true

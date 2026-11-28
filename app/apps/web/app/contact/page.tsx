@@ -11,7 +11,7 @@ export default function ContactPage() {
       </p>
 
       <h2>Operating entity</h2>
-      <p>Parakh is an online platform operated by NandiVex Technologies.</p>
+      <p>NandiRank is an online platform operated by NandiVex Technologies.</p>
       <p>
         <b>Address:</b> NandiVex Technologies, Sultanpur, Uttar Pradesh, India.
       </p>
