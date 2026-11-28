@@ -6,8 +6,8 @@ export default function RefundPolicyPage() {
   return (
     <LegalPage title="Refund policy" updated="last updated 24 November 2026" draft={false}>
       <p>
-        This policy sets out the terms for cancellations and refunds for services bought on NandiRank
-        (app.nandirank.nandivex.com), operated by NandiVex Technologies.
+        This policy sets out the terms for cancellations and refunds for services bought on
+        NandiRank (app.nandirank.nandivex.com), operated by NandiVex Technologies.
       </p>
 
       <h2>1. For students</h2>

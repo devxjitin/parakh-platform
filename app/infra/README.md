@@ -114,14 +114,14 @@ sender address stays on the Parakh domain.
 4. In the GitHub `production` environment, set the compatibility variables before
    switching the primary hostnames:
 
-   | Variable | Value |
-   | --- | --- |
-   | `LEGACY_SITE_HOSTNAME` | `parakh.nandivex.com` |
-   | `LEGACY_WEB_HOSTNAME` | `app.parakh.nandivex.com` |
-   | `LEGACY_API_HOSTNAME` | `api.parakh.nandivex.com` |
-   | `SITE_HOSTNAME` | `nandirank.nandivex.com` |
-   | `WEB_HOSTNAME` | `app.nandirank.nandivex.com` |
-   | `API_HOSTNAME` | `api.nandirank.nandivex.com` |
+   | Variable               | Value                        |
+   | ---------------------- | ---------------------------- |
+   | `LEGACY_SITE_HOSTNAME` | `parakh.nandivex.com`        |
+   | `LEGACY_WEB_HOSTNAME`  | `app.parakh.nandivex.com`    |
+   | `LEGACY_API_HOSTNAME`  | `api.parakh.nandivex.com`    |
+   | `SITE_HOSTNAME`        | `nandirank.nandivex.com`     |
+   | `WEB_HOSTNAME`         | `app.nandirank.nandivex.com` |
+   | `API_HOSTNAME`         | `api.nandirank.nandivex.com` |
 
 5. If the existing SSM `VERIFY_BASE_URL` overrides the app origin, set it to
    `https://app.nandirank.nandivex.com` for newly issued certificates. Run

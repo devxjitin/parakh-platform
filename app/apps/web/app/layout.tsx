@@ -15,7 +15,10 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_ORIGIN),
-  title: { default: 'NandiRank | Online exams and verified certificates', template: '%s | NandiRank' },
+  title: {
+    default: 'NandiRank | Online exams and verified certificates',
+    template: '%s | NandiRank',
+  },
   description: DESCRIPTION,
   applicationName: 'NandiRank',
   authors: [{ name: 'NandiVex Technologies' }],

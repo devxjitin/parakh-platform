@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
   title: 'Sign in',
-  description: 'Sign in to NandiRank to take exams, run your own exams and get verified certificates.',
+  description:
+    'Sign in to NandiRank to take exams, run your own exams and get verified certificates.',
   alternates: { canonical: '/login/' },
 };
 

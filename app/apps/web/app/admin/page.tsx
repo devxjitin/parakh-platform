@@ -54,7 +54,10 @@ export default function AdminConsolePage() {
 
   return (
     <Shell wide>
-      <PageHeader title="Admin console" subtitle="Run NandiRank: money, people, exams and settings" />
+      <PageHeader
+        title="Admin console"
+        subtitle="Run NandiRank: money, people, exams and settings"
+      />
       {tab === 'overview' && <Overview />}
       {tab === 'trainers' && <Trainers />}
       {tab === 'exams' && <Exams />}
